@@ -12,5 +12,5 @@ public static class UpdateTrust
     public const string RepoUrl = "https://github.com/TylerJayP/Lockbox";
 
     // UPDATE-PUBLIC-KEY (written by the release tool; don't edit by hand)
-    public const string PublicKey = "";
+    public const string PublicKey = "uLhamqxTB5e5++dPTeOMk8q/ZtcJTc78iAw5gHb1x58=";
 }
