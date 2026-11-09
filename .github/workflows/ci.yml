@@ -1,18 +1,28 @@
-# Builds and tests every push and pull request. Releases are NOT made here: they're signed with an
-# offline key on the developer's machine (see "Releasing" in README.md), so GitHub never holds it.
+# Builds and tests every push and pull request, on Linux and on Windows (where Lockbox actually runs).
+# Releases are NOT made here: they're signed with an offline key on the developer's machine
+# (see docs/RELEASING.md), so GitHub never holds it.
 name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    name: Build and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -20,7 +30,8 @@ jobs:
           dotnet-version: 10.0.x
       - name: Build
         run: dotnet build Lockbox.slnx -c Release
-      - name: Unit tests
-        run: dotnet test tests/Lockbox.Tests -c Release --no-build
-      - name: End-to-end UI checks (headless)
-        run: dotnet run --project tools/Lockbox.Screenshots -c Release --no-build -- smoke
+      - name: Tests (unit + headless end-to-end)
+        run: dotnet test Lockbox.slnx -c Release --no-build
+      - name: Windows app publishes
+        if: runner.os == 'Windows'
+        run: dotnet publish src/Lockbox.App -c Release -r win-x64 --self-contained -o publish/ci -p:DebugType=none

@@ -30,6 +30,18 @@ file      = header ‖ XChaCha20-Poly1305(vaultKey, nonce, aad = header, payload
 - The window is excluded from screenshots, recordings and screen sharing (Windows 10 2004+).
 - Items marked "protected" need the master password again before they can be viewed, copied or deleted.
 - A readable (CSV) export also requires the master password.
+- Imported CSV and text files can be overwritten and deleted when the import finishes, since they hold passwords in plain text.
+- Only one copy of Lockbox runs per Windows user. Opening it again brings the existing window forward, so two windows can never save different versions of the vault over each other.
+
+## Auto-type
+
+Auto-type (Windows, **off by default**) types a login with simulated keystrokes instead of the clipboard, so no other app can read it from there.
+
+- The Ctrl+Alt+A shortcut is only registered while a vault is unlocked. Locking releases it.
+- It picks the login by the active window's title (the browser's name is ignored), and only types when exactly one login matches. Otherwise Lockbox comes forward so you choose.
+- It never types into Lockbox itself, and it stops at once if a different window becomes active.
+- Protected items ask for the master password before anything is typed.
+- Characters are sent as Unicode input, so keyboard layout and Caps Lock can't change them.
 
 ## Updates
 
@@ -38,6 +50,8 @@ Installed copies check GitHub Releases for a newer version. Before anything is i
 1. The app downloads `lockbox-update.json` and `lockbox-update.sig` for that version and verifies the **Ed25519 signature** with the public key built into the app. If it doesn't verify, nothing is downloaded.
 2. After downloading, it checks the package's **SHA-256** against the signed manifest. A mismatch deletes the package.
 3. Velopack's automatic install-on-startup is turned off, so nothing unverified is ever installed.
+
+The release notes shown under *What's new* come from GitHub and aren't covered by the signature, so Lockbox shows them as formatted text only: links aren't clickable.
 
 The signing key lives encrypted on the developer's computer and never goes to GitHub, so a compromised GitHub account can't push a malicious update. See [RELEASING.md](RELEASING.md).
 
@@ -60,10 +74,11 @@ The signing key lives encrypted on the developer's computer and never goes to Gi
 
 - **Not professionally audited.** It uses vetted primitives in a standard construction, but nobody outside has reviewed this code. For your most critical accounts, KeePassXC or Bitwarden have years of scrutiny behind them.
 - **.NET strings can't be wiped.** Decrypted passwords shown in the app live in memory until the runtime clears them. Malware already running as you could read them. That's true of every password manager while unlocked.
-- **The clipboard is shared.** While a password is on the clipboard (20 s by default), any app can read it. Prefer typing over copying for very sensitive accounts.
+- **The clipboard is shared.** While a password is on the clipboard (20 s by default), any app can read it. Auto-type avoids the clipboard.
+- **Auto-type trusts window titles.** A fake page whose title mentions your bank's name would match your bank login. Only press Ctrl+Alt+A on the real sign-in page (check the address bar). Like typing by hand, keystrokes can be seen by a keylogger already running on the computer.
 - **Some protections are Windows-only:** clipboard-history exclusion, screen-capture hiding and Win+L locking. Elsewhere, Lockbox detects sleep from gaps in its timer.
 - **Attachments live inside the vault file**, so the whole vault (up to 150 MB of attachments) is rewritten on every save. That's fine for documents, but it's not meant for photo libraries.
 
 ## Reporting a problem
 
-If you find a security issue, please contact the developer privately rather than opening a public issue.
+If you find a security issue, please report it privately: on GitHub, open the repository's **Security** tab and choose **Report a vulnerability**. Please don't open a public issue for it.

@@ -1,0 +1,17 @@
+<Project>
+  <!-- Settings shared by every project in the repo. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Dev builds show this version; the release tool overrides it with -p:Version. -->
+    <Version>0.6.0</Version>
+    <Product>Lockbox</Product>
+    <Authors>Tyler Perkins</Authors>
+    <Copyright>Copyright (c) 2026 Tyler Perkins</Copyright>
+    <RepositoryUrl>https://github.com/TylerJayP/Lockbox</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IsPackable>false</IsPackable>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+</Project>

@@ -20,6 +20,61 @@ public sealed class AppSettings
     /// <summary>Ask GitHub for a newer version when Lockbox starts. The only time Lockbox goes online.</summary>
     public bool CheckForUpdates { get; set; } = true;
 
+    /// <summary>Auto-type (Windows): Ctrl+Alt+A types the matching login into the active window. Off until turned on.</summary>
+    public bool AutoTypeEnabled { get; set; }
+
+    public const int MaxRecentVaults = 5;
+
+    /// <summary>Vaults opened on this computer, newest first. A key file location is only kept when you asked for it.</summary>
+    public List<RecentVault> RecentVaults { get; set; } = [];
+
+    /// <summary>Recent vaults, starting the list from the last-opened vault for settings saved by older versions.</summary>
+    public IReadOnlyList<RecentVault> GetRecentVaults()
+    {
+        if (RecentVaults.Count == 0 && !string.IsNullOrEmpty(LastVaultPath))
+            RecentVaults.Add(new RecentVault(LastVaultPath, RememberKeyFileLocation ? LastKeyFilePath : null));
+        return RecentVaults;
+    }
+
+    /// <summary>Records a vault that was just opened or created, and saves.</summary>
+    public void RememberVault(string vaultPath, string? keyFilePath, bool rememberKeyFile)
+    {
+        RememberKeyFileLocation = rememberKeyFile && keyFilePath != null;
+        LastVaultPath = vaultPath;
+        LastKeyFilePath = RememberKeyFileLocation ? keyFilePath : null;
+        RecentVaults.RemoveAll(r => SamePath(r.Path, vaultPath));
+        RecentVaults.Insert(0, new RecentVault(vaultPath, LastKeyFilePath));
+        if (RecentVaults.Count > MaxRecentVaults) RecentVaults.RemoveRange(MaxRecentVaults, RecentVaults.Count - MaxRecentVaults);
+        Save();
+    }
+
+    /// <summary>After a key file change: point a remembered key file location at the new file.</summary>
+    public void UpdateRememberedKeyFile(string vaultPath, string newKeyFilePath)
+    {
+        int i = RecentVaults.FindIndex(r => SamePath(r.Path, vaultPath));
+        if (i >= 0 && RecentVaults[i].KeyFilePath != null) RecentVaults[i] = RecentVaults[i] with { KeyFilePath = newKeyFilePath };
+        if (LastVaultPath != null && SamePath(LastVaultPath, vaultPath) && RememberKeyFileLocation) LastKeyFilePath = newKeyFilePath;
+        Save();
+    }
+
+    public void ForgetVault(string vaultPath)
+    {
+        RecentVaults.RemoveAll(r => SamePath(r.Path, vaultPath));
+        if (LastVaultPath != null && SamePath(LastVaultPath, vaultPath))
+        {
+            LastVaultPath = RecentVaults.FirstOrDefault()?.Path;
+            LastKeyFilePath = RecentVaults.FirstOrDefault()?.KeyFilePath;
+            RememberKeyFileLocation = LastKeyFilePath != null;
+        }
+        Save();
+    }
+
+    private static bool SamePath(string a, string b)
+    {
+        try { return string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase); }
+        catch { return string.Equals(a, b, StringComparison.OrdinalIgnoreCase); }
+    }
+
     /// <summary>
     /// Newest save of each vault this computer has seen (by vault id). Used to warn when an older copy
     /// replaces a newer one, e.g. a sync tool restoring an old file. Holds no secrets.
@@ -65,6 +120,8 @@ public sealed class AppSettings
 }
 
 public sealed record KnownRevision(long Revision, DateTimeOffset SavedUtc);
+
+public sealed record RecentVault(string Path, string? KeyFilePath);
 
 [System.Text.Json.Serialization.JsonSerializable(typeof(AppSettings))]
 [System.Text.Json.Serialization.JsonSourceGenerationOptions(WriteIndented = true)]

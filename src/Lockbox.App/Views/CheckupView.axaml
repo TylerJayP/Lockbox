@@ -17,7 +17,7 @@
     <ScrollViewer>
         <StackPanel Width="720" HorizontalAlignment="Center" Margin="24,24,24,40" Spacing="16">
             <Grid ColumnDefinitions="Auto,*">
-                <Button Classes="icon" Command="{Binding BackCommand}" ToolTip.Tip="Back to vault">
+                <Button AutomationProperties.Name="Back to vault" Classes="icon" Command="{Binding BackCommand}" ToolTip.Tip="Back to vault">
                     <PathIcon Data="{StaticResource IconBack}" />
                 </Button>
                 <TextBlock Grid.Column="1" Classes="h1" Text="Security check-up" Margin="8,0,0,0" VerticalAlignment="Center" />

@@ -7,9 +7,38 @@
 3. **Save the key file** somewhere other than the vault, ideally a USB stick. You need it plus your password to unlock.
 4. **Save the emergency sheet, print it**, then delete the file. If you ever lose the key file, choose *"I don't have my key file"* on the unlock screen and type the key from the sheet.
 
+## Moving from a browser or another password manager
+
+1. **Export your passwords as a CSV file** from the app you're leaving:
+
+   | From | Where to find the export |
+   |---|---|
+   | Chrome, Brave | Google Password Manager (`chrome://password-manager/settings`) → **Export passwords** |
+   | Edge | Settings → Passwords (`edge://settings/passwords`) → **⋯** → **Export passwords** |
+   | Firefox | `about:logins` → **⋯** → **Export Passwords** |
+   | Safari / Apple Passwords | Passwords app → **File** → **Export All Passwords to File** |
+   | Bitwarden | **Tools** → **Export vault** → file format *.csv* |
+   | 1Password | **File** → **Export** → choose the account → *CSV* |
+   | LastPass | **Account options** → **Advanced** → **Export** |
+   | KeePassXC | **Database** → **Export** → **CSV file** |
+   | Dashlane, Proton Pass | **Settings** → **Export** → *CSV* |
+
+   Menus move around between versions. If one isn't where the table says, search that app's help for "export passwords".
+2. In Lockbox, click **Import**, then **Open .csv or .txt file…**, and choose the export. Click **Find logins**. Lockbox recognizes the format by itself.
+3. Review the list. Logins you already have and rows the export repeats start unticked. Click **Import selected**.
+4. Let Lockbox **overwrite and delete the CSV**. It holds every password in plain text.
+5. Once you're happy with Lockbox, delete the passwords from your browser's own password manager too, so they're only in one place.
+
+What comes across:
+
+- Logins, notes, tags and folders (folders become tags). From LastPass, payment cards become Lockbox cards.
+- A Lockbox CSV export brings back everything: cards, Wi‑Fi networks, custom fields, tags, 2FA settings and backup codes.
+- **Authenticator keys** (TOTP secrets) from Bitwarden, 1Password, KeePassXC and others are kept in a hidden custom field called *Authenticator key (TOTP)*, and the login is marked "2FA is on". Lockbox doesn't generate the six-digit codes, so keep using your authenticator app.
+- Attachments and passkeys aren't part of CSV exports, so they don't come across.
+
 ## Moving from a text file
 
-1. Click **Import .txt** and open your old file, or paste its contents.
+1. Click **Import** and open your old file, or paste its contents.
 2. Lockbox understands most layouts, even mixed together:
    ```
    Netflix
@@ -41,6 +70,36 @@
 | **Wi‑Fi network** | Network name, password, security type, and a QR code guests can scan to join |
 
 Every type can also have **custom fields** (tick *Hide* to mask one like a password), **attachments** (up to 20 MB each, encrypted inside the vault) and **tags**.
+
+## Auto-type (Windows)
+
+Auto-type types a login for you, so the password never touches the clipboard. Turn it on in *Settings → Auto-type*.
+
+- **With the shortcut:** click into the sign-in form, press **Ctrl+Alt+A**, and Lockbox types the username, Tab, the password and Enter. It picks the login whose website or name appears in the window's title (for example "GitHub" in *Sign in to GitHub — Mozilla Firefox*).
+- **With the button:** if nothing matches, or several logins do, Lockbox comes forward so you can pick. Select the login and click **Auto-type** at the top of it. It types into the window you were in just before.
+
+Safety rules it always follows:
+
+- It only works while Lockbox is unlocked. Locking stops the shortcut.
+- It never types into Lockbox itself.
+- It stops the moment a different window becomes active, so text can't land in the wrong place.
+- Protected items ask for your master password first.
+
+**Sign-ins with two pages** (username first, then password, like Google or Microsoft): add a custom field named `Auto-type` to that login with what to type, for example:
+
+```
+{USERNAME}{ENTER}{DELAY 1500}{PASSWORD}{ENTER}
+```
+
+You can use `{USERNAME}`, `{PASSWORD}`, `{TAB}`, `{ENTER}` and `{DELAY milliseconds}`. Anything else is typed as written.
+
+If another app already uses Ctrl+Alt+A, Settings says so, and the Auto-type button still works.
+
+## More than one vault
+
+Lockbox remembers the last few vaults you opened on this computer. When there's more than one, the unlock screen shows them as **Recent vaults**: click one to fill in its file (and its key file, if you ticked *Remember where my key file is*). Right-click one to remove it from the list. The list holds file locations only, never passwords or keys.
+
+Lockbox only runs once at a time. Opening it again just brings the open window forward.
 
 ## Backup codes
 
@@ -87,11 +146,13 @@ The first time you save after unlocking, Lockbox copies the previous version of 
 | Delete (in the list) | Delete item |
 | Esc (in search) | Clear search and filters |
 | Ctrl+L | Lock now |
+| Ctrl+Alt+A (anywhere) | Auto-type into the active window, if turned on |
 
 ## Settings worth knowing
 
 - **Auto-lock** after a few minutes of inactivity (default 5). Lockbox also locks when Windows locks or the computer sleeps.
 - **Clear copied passwords** after 20 seconds (adjustable).
 - **Hide from screenshots and screen sharing:** on by default.
+- **Auto-type** with Ctrl+Alt+A: off until you turn it on.
 - **Check for updates** when Lockbox starts: on by default, and the only time Lockbox goes online.
 - **Change master password**, optionally with a brand-new key file.

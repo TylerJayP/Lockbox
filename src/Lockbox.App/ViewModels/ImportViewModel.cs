@@ -10,6 +10,7 @@ public partial class ImportViewModel : ObservableObject
 {
     private readonly VaultViewModel _owner;
     private string? _sourcePath;
+    private string? _format;
 
     public ImportViewModel(VaultViewModel owner) => _owner = owner;
 
@@ -28,12 +29,12 @@ public partial class ImportViewModel : ObservableObject
     [RelayCommand]
     private async Task OpenFile()
     {
-        var path = await _owner.Platform.PickOpenFileAsync("Open your passwords text file", "Text files", "*.txt", "*.*");
+        var path = await _owner.Platform.PickOpenFileAsync("Open a passwords file", "Password exports and text files", "*.csv", "*.txt", "*.*");
         if (path == null) return;
         try
         {
             var info = new FileInfo(path);
-            if (info.Length > 5 * 1024 * 1024) { Error = "That file is over 5 MB, which doesn't look like a passwords list."; return; }
+            if (info.Length > 10 * 1024 * 1024) { Error = "That file is over 10 MB, which doesn't look like a passwords list."; return; }
             SourceText = await File.ReadAllTextAsync(path);
             _sourcePath = path;
             SourceName = info.Name;
@@ -46,21 +47,34 @@ public partial class ImportViewModel : ObservableObject
     private void FindLogins()
     {
         Error = null;
-        var candidates = TextImporter.Parse(SourceText);
-        if (candidates.Count == 0) { Error = "No logins found. Paste the text or open the file first."; return; }
+        var csv = CsvImporter.TryParse(SourceText);
+        var candidates = csv?.Candidates ?? TextImporter.Parse(SourceText);
+        _format = csv?.Source;
+        if (candidates.Count == 0)
+        {
+            Error = csv != null ? "That export has no logins in it." : "No logins found. Paste the text or open the file first.";
+            return;
+        }
 
-        var existing = _owner.Vault.Entries
-            .Select(e => (e.Title.Trim().ToLowerInvariant(), e.Username.Trim().ToLowerInvariant()))
+        // Spot logins you already have: same name and username, or same site and username
+        // (browsers name logins after the site, e.g. "github.com", so names alone often differ).
+        var byName = _owner.Vault.Entries.Select(e => (Norm(e.Title), Norm(e.Username))).ToHashSet();
+        var bySite = _owner.Vault.Entries
+            .Where(e => e.Type == ItemType.Login && e.Url.Length > 0)
+            .Select(e => (CsvImporter.SiteKey(e.Url), Norm(e.Username)))
             .ToHashSet();
 
         Rows.Clear();
         foreach (var c in candidates)
         {
             var row = new ImportRowViewModel(c);
-            if (existing.Contains((c.Title.Trim().ToLowerInvariant(), c.Username.Trim().ToLowerInvariant())))
+            bool known = byName.Contains((Norm(c.Title), Norm(c.Username)))
+                         || (c.Type == ItemType.Login && c.Url.Length > 0 && bySite.Contains((CsvImporter.SiteKey(c.Url), Norm(c.Username))));
+            if (known && row.Include)
             {
                 row.Include = false;
-                row.Warnings = ("Already in your vault (same name and username). Unticked. " + row.Warnings).Trim();
+                string why = c.Type == ItemType.Login ? "same site or name, same username" : "same name";
+                row.Warnings = ($"Looks like it's already in your vault ({why}). Unticked. " + row.Warnings).Trim();
             }
             row.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(ImportRowViewModel.Include)) UpdateSummary(); };
             Rows.Add(row);
@@ -69,12 +83,15 @@ public partial class ImportViewModel : ObservableObject
         UpdateSummary();
     }
 
+    private static string Norm(string s) => s.Trim().ToLowerInvariant();
+
     private void UpdateSummary()
     {
         int included = Rows.Count(r => r.Include);
         int flagged = Rows.Count(r => r.Include && r.HasWarnings);
         int codes = Rows.Count(r => r.Include && r.BackupCodes.Trim().Length > 0);
-        Summary = $"{included} of {Rows.Count} selected" +
+        Summary = (_format != null ? $"Read as a {_format} export · " : "") +
+                  $"{included} of {Rows.Count} selected" +
                   (flagged > 0 ? $" · {flagged} need a look (yellow notes)" : "") +
                   (codes > 0 ? $" · {codes} with backup codes" : "");
         ImportCommand.NotifyCanExecuteChanged();
@@ -133,7 +150,7 @@ public partial class ImportViewModel : ObservableObject
             _owner.Search = "";
             _owner.OnlyNeedsAttention = false;
             _owner.RebuildList();
-            _owner.Status = $"Imported {n} logins.";
+            _owner.Status = n == 1 ? "Imported 1 item." : $"Imported {n} items.";
             SourceText = "";
             Rows.Clear();
             _owner.Main.Navigate(_owner);
@@ -146,20 +163,24 @@ public partial class ImportViewModel : ObservableObject
 
     private async Task OfferToDeleteOriginalAsync(int count)
     {
-        const string advice =
+        string what = count == 1 ? "1 item" : $"{count} items";
+        string browserTip = _format is "Chrome, Edge or Brave" or "Firefox" or "Safari / Apple Passwords"
+            ? "\n• Your browser still has its own copy of these passwords. Once you're happy with Lockbox, you can remove them in the browser's password settings."
+            : "";
+        string advice =
             "• If your Desktop syncs to OneDrive (or iCloud/Google Drive), delete the file there too and empty that service's recycle bin; it keeps old versions.\n" +
             "• On an SSD, deleted data isn't guaranteed to be erased immediately. Turning on BitLocker (Windows) or FileVault (Mac) protects what's left behind.\n" +
-            "• Since the passwords sat in a plain text file, consider changing the ones for your most important accounts (email first).";
+            "• Since the passwords sat in a plain text file, consider changing the ones for your most important accounts (email first)." + browserTip;
 
         if (_sourcePath == null || !File.Exists(_sourcePath))
         {
-            await _owner.Main.AlertAsync($"Imported {count} logins",
-                "Next step: delete the original text file (and empty the Recycle Bin).\n\n" + advice);
+            await _owner.Main.AlertAsync($"Imported {what}",
+                "Next step: delete the original file (and empty the Recycle Bin).\n\n" + advice);
             return;
         }
 
-        var choice = await _owner.Main.ShowAsync(new DialogViewModel($"Imported {count} logins",
-            $"Your logins are now encrypted in the vault. The original file is still sitting in plain text:\n{_sourcePath}\n\n" +
+        var choice = await _owner.Main.ShowAsync(new DialogViewModel($"Imported {what}",
+            $"Your passwords are now encrypted in the vault. The original file is still sitting in plain text:\n{_sourcePath}\n\n" +
             "Lockbox can overwrite it and delete it permanently (it won't go to the Recycle Bin).\n\n" + advice,
             [new DialogButton("keep", "Keep it for now"), new DialogButton("delete", "Overwrite and delete the file", IsDanger: true)]));
 
@@ -167,7 +188,7 @@ public partial class ImportViewModel : ObservableObject
         try
         {
             await Services.FileShredder.OverwriteAndDeleteAsync(_sourcePath);
-            _owner.Status = "Original text file overwritten and deleted.";
+            _owner.Status = "Original file overwritten and deleted.";
         }
         catch (Exception ex)
         {
@@ -178,9 +199,12 @@ public partial class ImportViewModel : ObservableObject
 
 public partial class ImportRowViewModel : ObservableObject
 {
+    private readonly ImportCandidate _candidate;
+
     public ImportRowViewModel(ImportCandidate c)
     {
-        Include = true;
+        _candidate = c;
+        Include = !c.SuggestSkip;
         Title = c.Title;
         Url = c.Url;
         Username = c.Username;
@@ -206,17 +230,27 @@ public partial class ImportRowViewModel : ObservableObject
 
     public TwoFactorMethod TwoFactorMethod { get; }
     public string SourceText { get; }
+    public bool IsLogin => _candidate.Type == ItemType.Login;
+    public string Extras => _candidate.ExtrasSummary;
+    public bool HasExtras => Extras.Length > 0;
     public bool HasWarnings => Warnings.Length > 0;
     public bool HasCodes => BackupCodes.Trim().Length > 0;
     public bool HasNotes => Notes.Trim().Length > 0;
 
     partial void OnWarningsChanged(string value) => OnPropertyChanged(nameof(HasWarnings));
 
-    public Entry ToEntry() => new ImportCandidate
+    /// <summary>The candidate with your edits from the review screen; card, Wi-Fi, fields and tags come along unchanged.</summary>
+    public Entry ToEntry()
     {
-        Title = Title, Url = Url, Username = Username, Password = Password,
-        TwoFactorEnabled = TwoFactorEnabled, TwoFactorMethod = TwoFactorMethod, BackupCodes = BackupCodes, Notes = Notes,
-    }.ToEntry();
+        _candidate.Title = Title;
+        _candidate.Url = Url;
+        _candidate.Username = Username;
+        _candidate.Password = Password;
+        _candidate.TwoFactorEnabled = TwoFactorEnabled;
+        _candidate.BackupCodes = BackupCodes;
+        _candidate.Notes = Notes;
+        return _candidate.ToEntry();
+    }
 
     [RelayCommand]
     private void ToggleSource() => ShowSource = !ShowSource;

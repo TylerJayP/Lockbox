@@ -1,0 +1,24 @@
+# Weekly pull requests for library and GitHub Actions updates. CI tests each one before you merge it.
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      avalonia:
+        patterns: ["Avalonia*"]
+      # The Velopack library and the vpk packager must stay on the same version.
+      velopack:
+        patterns: ["Velopack", "vpk"]
+      test-tools:
+        patterns: ["xunit*", "Microsoft.NET.Test.Sdk", "coverlet*"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

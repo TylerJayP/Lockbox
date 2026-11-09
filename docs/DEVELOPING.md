@@ -21,11 +21,21 @@ Use `-r osx-arm64` (Apple Silicon), `-r osx-x64` or `-r linux-x64` for other sys
 ## Tests
 
 ```
-dotnet test                                              # unit tests (crypto, vault, importer, export, updates…)
-dotnet run --project tools/Lockbox.Screenshots -- smoke  # drives the real app view-models end to end, headless
+dotnet test
 ```
 
-Both run on every push in GitHub Actions ([ci.yml](../.github/workflows/ci.yml)).
+That runs both test projects:
+
+- **Lockbox.Tests:** unit tests for crypto, the vault file, importers, export, auto-type matching, markdown and update signing.
+- **Lockbox.UiTests:** drives the real app (headless, no window appears) through create, unlock, edit, import, export, settings, recovery, auto-type and more, then checks what ended up on disk. Each step is listed in the test output.
+
+GitHub Actions runs them on every push and pull request, on both Linux and Windows ([ci.yml](../.github/workflows/ci.yml)). [CodeQL](../.github/workflows/codeql.yml) scans the code for security problems, and [Dependabot](../.github/dependabot.yml) opens weekly pull requests for library updates.
+
+## Dependencies
+
+Every NuGet version lives in [Directory.Packages.props](../Directory.Packages.props), and shared build settings (target framework, version, license) in [Directory.Build.props](../Directory.Build.props). Project files only list package names.
+
+The Velopack packager (`vpk`) is pinned in [.config/dotnet-tools.json](../.config/dotnet-tools.json) and must match the `Velopack` package version. Dependabot updates the two together, and the release tool refuses to run if they differ. `dotnet tool restore` installs it.
 
 ## Screenshots
 
@@ -43,19 +53,16 @@ python tools/Lockbox.Screenshots/frame_readme_images.py raw-shots docs/images
 ## Project layout
 
 ```
-src/Lockbox.Core            Crypto, file format, vault, importer, export, update signing (no UI)
+src/Lockbox.Core            Crypto, file format, vault, importers, export, auto-type matching, update signing (no UI)
 src/Lockbox.App             Avalonia desktop app (MVVM, CommunityToolkit.Mvvm)
 tests/Lockbox.Tests         xUnit tests for the core
-tools/Lockbox.Screenshots   Headless renderer and end-to-end smoke test
+tests/Lockbox.UiTests       Headless end-to-end test of the app
+tools/Lockbox.Screenshots   Headless renderer for screenshots
 tools/Lockbox.Release       keygen + one-command signed release
-.github/workflows/ci.yml    Build, tests and smoke checks on every push (no release secrets)
+release-notes/              One Markdown file per version, shown in the update banner
+.github/                    CI (Linux + Windows), CodeQL, Dependabot (no release secrets)
 ```
 
-## Libraries
+## Libraries and license
 
-- [libsodium](https://libsodium.org) via [NSec](https://nsec.rocks) (ISC / MIT)
-- [zxcvbn-core](https://github.com/trichards57/zxcvbn-cs) (MIT), a port of Dropbox's zxcvbn
-- [Avalonia UI](https://avaloniaui.net) (MIT), [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) (MIT)
-- [Velopack](https://velopack.io) installer and updates (MIT), [QRCoder](https://github.com/codebude/QRCoder) (MIT)
-- EFF Large Wordlist for passphrases ([CC BY 3.0 US](https://www.eff.org/dice)), via KeePassXC's copy
-- Icons from [Material Design Icons](https://pictogrammers.com/library/mdi/) (Apache 2.0)
+Lockbox is [MIT licensed](../LICENSE). The libraries, font, icons and word list it uses, and their licenses, are listed in [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md); both files ship next to `Lockbox.exe`.

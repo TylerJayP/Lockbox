@@ -11,31 +11,33 @@
 
     <Grid RowDefinitions="Auto,*">
         <Grid ColumnDefinitions="Auto,*" Margin="24,20,24,12">
-            <Button Classes="icon" Command="{Binding CancelCommand}" ToolTip.Tip="Back to vault">
+            <Button AutomationProperties.Name="Back to vault" Classes="icon" Command="{Binding CancelCommand}" ToolTip.Tip="Back to vault">
                 <PathIcon Data="{StaticResource IconBack}" />
             </Button>
             <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                <TextBlock Classes="h1" Text="Import from a text file" />
+                <TextBlock Classes="h1" Text="Import passwords" />
                 <TextBlock Classes="dim" TextWrapping="Wrap"
-                           Text="Everything happens on this computer. You'll review every login before anything is saved." />
+                           Text="From a browser or password manager export, or your own text file. Everything happens on this computer, and you'll review every login before anything is saved." />
             </StackPanel>
         </Grid>
 
         <!-- Step 1: source text -->
-        <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto" Margin="24,0,24,24" IsVisible="{Binding NotReviewing}">
+        <Grid Grid.Row="1" RowDefinitions="Auto,Auto,*,Auto" Margin="24,0,24,24" IsVisible="{Binding NotReviewing}">
             <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,10">
                 <Button Command="{Binding OpenFileCommand}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <PathIcon Data="{StaticResource IconImport}" />
-                        <TextBlock Text="Open .txt file…" />
+                        <TextBlock Text="Open .csv or .txt file…" />
                     </StackPanel>
                 </Button>
                 <TextBlock Classes="dim" VerticalAlignment="Center" Text="{Binding SourceName}" />
                 <TextBlock Classes="dim" VerticalAlignment="Center" Text="or paste the contents below" />
             </StackPanel>
-            <TextBox Grid.Row="1" Classes="multi mono" Text="{Binding SourceText}" FontSize="13"
+            <TextBlock Grid.Row="1" Classes="dim" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10"
+                       Text="Exports from Chrome, Edge, Brave, Firefox, Safari, Bitwarden, 1Password, LastPass, KeePassXC, Dashlane and Proton Pass are recognized automatically. In Chrome or Edge: Settings → Passwords → Export. In Firefox: about:logins → ⋯ → Export." />
+            <TextBox AutomationProperties.Name="Text to import" Grid.Row="2" Classes="multi mono" Text="{Binding SourceText}" FontSize="13"
                      PlaceholderText="Any of these layouts work, even mixed together:&#10;&#10;Netflix&#10;email: me@example.com&#10;password: hunter2&#10;&#10;Steam | myname | St3amPass&#10;Amazon - me@example.com - Amaz0n!&#10;&#10;Google&#10;user: me@gmail.com&#10;pass: …&#10;2FA: authenticator&#10;Backup codes:&#10;1234 5678&#10;2345 6789" />
-            <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+            <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
                 <TextBlock Classes="error" VerticalAlignment="Center" Text="{Binding Error}" />
                 <Button Grid.Column="1" Classes="accent" Content="Find logins" Command="{Binding FindLoginsCommand}" Padding="18,9" />
             </Grid>
@@ -58,40 +60,42 @@
                                IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                     <ItemsControl ItemsSource="{Binding Rows}">
                         <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate><StackPanel Spacing="10" /></ItemsPanelTemplate>
+                            <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:ImportRowViewModel">
-                                <Border Classes="card row" Classes.excluded="{Binding !Include}" Padding="16">
+                                <Border Classes="card row" Classes.excluded="{Binding !Include}" Padding="16" Margin="0,0,0,10">
                                     <Grid ColumnDefinitions="Auto,*">
                                         <CheckBox IsChecked="{Binding Include}" VerticalAlignment="Top" Margin="0,4,8,0" />
                                         <StackPanel Grid.Column="1" Spacing="10">
-                                            <TextBox Text="{Binding Title}" FontWeight="SemiBold" FontSize="16" />
+                                            <TextBox AutomationProperties.Name="Name" Text="{Binding Title}" FontWeight="SemiBold" FontSize="16" />
                                             <Border Classes="notice" IsVisible="{Binding HasWarnings}">
                                                 <TextBlock Classes="warn" FontSize="12" Text="{Binding Warnings}" />
                                             </Border>
-                                            <Grid ColumnDefinitions="*,*,*">
+                                            <TextBlock Classes="dim" FontSize="12" Text="{Binding Extras, StringFormat='Also brings: {0}'}" TextWrapping="Wrap"
+                                                       IsVisible="{Binding HasExtras}" />
+                                            <Grid ColumnDefinitions="*,*,*" IsVisible="{Binding IsLogin}">
                                                 <StackPanel>
                                                     <TextBlock Classes="label" Text="Username" />
-                                                    <TextBox Text="{Binding Username}" />
+                                                    <TextBox AutomationProperties.Name="Username" Text="{Binding Username}" />
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1" Margin="10,0">
                                                     <TextBlock Classes="label" Text="Password" />
-                                                    <TextBox Classes="mono" Text="{Binding Password}" />
+                                                    <TextBox AutomationProperties.Name="Password" Classes="mono" Text="{Binding Password}" />
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="2">
                                                     <TextBlock Classes="label" Text="Website" />
-                                                    <TextBox Text="{Binding Url}" />
+                                                    <TextBox AutomationProperties.Name="Website" Text="{Binding Url}" />
                                                 </StackPanel>
                                             </Grid>
-                                            <CheckBox Content="2FA is on" IsChecked="{Binding TwoFactorEnabled}" />
+                                            <CheckBox Content="2FA is on" IsChecked="{Binding TwoFactorEnabled}" IsVisible="{Binding IsLogin}" />
                                             <StackPanel IsVisible="{Binding HasCodes}">
                                                 <TextBlock Classes="label" Text="Backup codes (will be sealed with your recovery passphrase)" />
-                                                <TextBox Classes="multi mono" Text="{Binding BackupCodes}" MinHeight="60" />
+                                                <TextBox AutomationProperties.Name="Backup codes" Classes="multi mono" Text="{Binding BackupCodes}" MinHeight="60" />
                                             </StackPanel>
                                             <StackPanel IsVisible="{Binding HasNotes}">
                                                 <TextBlock Classes="label" Text="Notes" />
-                                                <TextBox Classes="multi" Text="{Binding Notes}" />
+                                                <TextBox AutomationProperties.Name="Notes" Classes="multi" Text="{Binding Notes}" />
                                             </StackPanel>
                                             <Button Classes="link" FontSize="12" Content="Show the original lines" Command="{Binding ToggleSourceCommand}" />
                                             <Border Classes="section" IsVisible="{Binding ShowSource}">

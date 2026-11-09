@@ -91,6 +91,17 @@ public partial class MainWindow : Window, IPlatform
 
     public void OpenFolder(string path) => _ = Launcher.LaunchDirectoryInfoAsync(new DirectoryInfo(path));
 
+    private WindowsAutoType? _autoType;
+
+    public IAutoTypeHost? AutoType
+    {
+        get
+        {
+            if (!OperatingSystem.IsWindows() || TryGetPlatformHandle()?.HandleDescriptor != "HWND") return null;
+            return _autoType ??= new WindowsAutoType(this);
+        }
+    }
+
     private bool _captureProtection;
 
     public bool SetCaptureProtection(bool enabled)

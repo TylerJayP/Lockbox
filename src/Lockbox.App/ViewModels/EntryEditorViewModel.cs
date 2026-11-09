@@ -64,6 +64,12 @@ public partial class EntryEditorViewModel : ObservableObject
     partial void OnIsSealedChanged(bool value) => OnPropertyChanged(nameof(IsOpen));
     public void Unseal() => IsSealed = false;
 
+    public bool ShowAutoType => IsLogin && _owner.AutoTypeAvailable;
+    public void NotifyAutoTypeChanged() => OnPropertyChanged(nameof(ShowAutoType));
+
+    [RelayCommand]
+    private Task AutoType() => _owner.AutoTypeEntryAsync(EntryId);
+
     // ── common ──
     [ObservableProperty] private string _title = "";
     [ObservableProperty] private string _notes = "";

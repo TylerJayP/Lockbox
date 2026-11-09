@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Security.Cryptography;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -17,6 +18,42 @@ public partial class UnlockViewModel : ObservableObject
         VaultPath = main.Settings.LastVaultPath ?? "";
         RememberKeyFileLocation = main.Settings.RememberKeyFileLocation;
         KeyFilePath = main.Settings.RememberKeyFileLocation ? main.Settings.LastKeyFilePath ?? "" : "";
+        foreach (var r in main.Settings.GetRecentVaults()) Recent.Add(new RecentVaultItem(r));
+        MarkCurrent();
+    }
+
+    /// <summary>Vaults opened on this computer before. Shown as one-click choices when there's more than one.</summary>
+    public ObservableCollection<RecentVaultItem> Recent { get; } = [];
+    public bool HasRecent => Recent.Count > 1;
+
+    /// <summary>Asks the view to put the cursor in the password box.</summary>
+    public event EventHandler? FocusPasswordRequested;
+
+    partial void OnVaultPathChanged(string value) => MarkCurrent();
+
+    private void MarkCurrent()
+    {
+        foreach (var r in Recent) r.IsCurrent = string.Equals(r.Path, VaultPath, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [RelayCommand]
+    private void PickRecent(RecentVaultItem item)
+    {
+        VaultPath = item.Path;
+        TypeKeyManually = false;
+        KeyFilePath = item.KeyFilePath ?? "";
+        RememberKeyFileLocation = item.KeyFilePath != null;
+        Password = "";
+        Error = item.Exists ? null : "That vault isn't where it used to be. Browse to it, or remove it from the list.";
+        FocusPasswordRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void ForgetRecent(RecentVaultItem item)
+    {
+        _main.Settings.ForgetVault(item.Path);
+        Recent.Remove(item);
+        OnPropertyChanged(nameof(HasRecent));
     }
 
     public string? LockedReason { get; }
@@ -97,10 +134,7 @@ public partial class UnlockViewModel : ObservableObject
             }
             _main.Settings.RecordRevision(vault.VaultId, vault.Revision, vault.LastSavedUtc);
 
-            _main.Settings.LastVaultPath = path;
-            _main.Settings.RememberKeyFileLocation = RememberKeyFileLocation && !TypeKeyManually;
-            _main.Settings.LastKeyFilePath = TypeKeyManually ? null : KeyFilePath;
-            _main.Settings.Save();
+            _main.Settings.RememberVault(path, TypeKeyManually ? null : KeyFilePath, RememberKeyFileLocation && !TypeKeyManually);
 
             Password = "";
             _main.OnUnlocked(new VaultViewModel(_main, vault, secret));
@@ -110,4 +144,20 @@ public partial class UnlockViewModel : ObservableObject
         catch (Exception ex) { Error = "Couldn't open the vault: " + ex.Message; CryptographicOperations.ZeroMemory(secret); }
         finally { IsBusy = false; }
     }
+}
+
+public partial class RecentVaultItem(Services.RecentVault vault) : ObservableObject
+{
+    public string Path { get; } = vault.Path;
+    public string? KeyFilePath { get; } = vault.KeyFilePath;
+    // Split on both separators so a Windows path reads the same everywhere.
+    private static readonly char[] Separators = ['\\', '/'];
+    private readonly string[] _parts = vault.Path.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
+
+    public string Name => _parts.Length > 0 ? System.IO.Path.GetFileNameWithoutExtension(_parts[^1]) : Path;
+    public string Folder => _parts.Length > 1 ? _parts[^2] : "";
+    public bool Exists => File.Exists(Path);
+    public string Tip => Path + (KeyFilePath != null ? "\nKey file: " + KeyFilePath : "");
+
+    [ObservableProperty] private bool _isCurrent;
 }

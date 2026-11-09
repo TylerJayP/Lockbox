@@ -11,6 +11,9 @@ public interface IPlatform
 
     /// <summary>Hide or show the window in screenshots and screen sharing. Returns false if the OS doesn't support it.</summary>
     bool SetCaptureProtection(bool enabled);
+
+    /// <summary>Typing logins into other apps. Null where it isn't supported (anything but Windows).</summary>
+    IAutoTypeHost? AutoType { get; }
 }
 
 /// <summary>Time of the last keyboard/mouse input in the window, for auto-lock.</summary>

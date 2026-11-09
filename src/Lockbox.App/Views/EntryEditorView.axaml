@@ -11,16 +11,23 @@
         <ScrollViewer>
             <StackPanel MaxWidth="780" Margin="32,22,32,24" Spacing="16">
                 <!-- Header -->
-                <Grid ColumnDefinitions="Auto,*,Auto">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
                     <Border Width="40" Height="40" CornerRadius="10" Background="{StaticResource AccentSoft}" VerticalAlignment="Center">
                         <PathIcon Data="{Binding TypeIcon}" Foreground="#9EC0FF" Width="20" Height="20" />
                     </Border>
                     <StackPanel Grid.Column="1" Margin="10,0,0,0">
                         <TextBlock Classes="dim" FontSize="11" Text="{Binding TypeLabel}" Margin="5,0,0,0" />
-                        <TextBox Name="TitleBox" Text="{Binding Title}" FontSize="22" FontWeight="SemiBold" PlaceholderText="Name"
+                        <TextBox AutomationProperties.Name="Name" Name="TitleBox" Text="{Binding Title}" FontSize="22" FontWeight="SemiBold" PlaceholderText="Name"
                                  Background="Transparent" BorderThickness="0" Padding="4,2" IsReadOnly="{Binding IsSealed}" />
                     </StackPanel>
-                    <Button Grid.Column="2" Classes="icon danger" Command="{Binding DeleteCommand}" ToolTip.Tip="Delete this item"
+                    <Button Grid.Column="2" Command="{Binding AutoTypeCommand}" IsVisible="{Binding ShowAutoType}" VerticalAlignment="Center" Margin="0,0,6,0"
+                            ToolTip.Tip="Type the username and password into the window you were using before Lockbox">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="{StaticResource IconKeyboard}" />
+                            <TextBlock Text="Auto-type" />
+                        </StackPanel>
+                    </Button>
+                    <Button AutomationProperties.Name="Delete this item" Grid.Column="3" Classes="icon danger" Command="{Binding DeleteCommand}" ToolTip.Tip="Delete this item"
                             VerticalAlignment="Center" IsVisible="{Binding IsOpen}">
                         <PathIcon Data="{StaticResource IconTrash}" />
                     </Button>
@@ -54,7 +61,7 @@
                 <Border Classes="card" Padding="20" IsVisible="{Binding IsNote}">
                     <StackPanel>
                         <TextBlock Classes="label" Text="Note" />
-                        <TextBox Classes="multi" MinHeight="240" Text="{Binding Notes}" PlaceholderText="Anything you want kept private: combinations, answers, instructions…" />
+                        <TextBox AutomationProperties.Name="Notes" Classes="multi" MinHeight="240" Text="{Binding Notes}" PlaceholderText="Anything you want kept private: combinations, answers, instructions…" />
                     </StackPanel>
                 </Border>
 
@@ -64,8 +71,8 @@
                         <StackPanel IsVisible="{Binding IsLogin}">
                             <TextBlock Classes="label" Text="Username or email" />
                             <Grid ColumnDefinitions="*,Auto">
-                                <TextBox Text="{Binding Username}" />
-                                <Button Grid.Column="1" Classes="icon" Margin="4,0,0,0" Command="{Binding CopyUsernameCommand}" ToolTip.Tip="Copy username (Ctrl+B)">
+                                <TextBox AutomationProperties.Name="Username" Text="{Binding Username}" />
+                                <Button AutomationProperties.Name="Copy username" Grid.Column="1" Classes="icon" Margin="4,0,0,0" Command="{Binding CopyUsernameCommand}" ToolTip.Tip="Copy username (Ctrl+B)">
                                     <PathIcon Data="{StaticResource IconCopy}" />
                                 </Button>
                             </Grid>
@@ -74,8 +81,8 @@
                         <StackPanel IsVisible="{Binding IsWifi}">
                             <TextBlock Classes="label" Text="Network name (SSID)" />
                             <Grid ColumnDefinitions="*,Auto">
-                                <TextBox Text="{Binding NetworkName}" />
-                                <Button Grid.Column="1" Classes="icon" Margin="4,0,0,0" Command="{Binding CopyNetworkNameCommand}" ToolTip.Tip="Copy network name">
+                                <TextBox AutomationProperties.Name="Network name" Text="{Binding NetworkName}" />
+                                <Button AutomationProperties.Name="Copy network name" Grid.Column="1" Classes="icon" Margin="4,0,0,0" Command="{Binding CopyNetworkNameCommand}" ToolTip.Tip="Copy network name">
                                     <PathIcon Data="{StaticResource IconCopy}" />
                                 </Button>
                             </Grid>
@@ -84,14 +91,14 @@
                         <StackPanel Spacing="6">
                             <TextBlock Classes="label" Text="{Binding PasswordLabel}" Margin="0" />
                             <Grid ColumnDefinitions="*,Auto,Auto,Auto">
-                                <TextBox Classes="mono" Text="{Binding Password}" PasswordChar="•" RevealPassword="{Binding RevealPassword}" />
-                                <Button Grid.Column="1" Classes="icon" Margin="4,0,0,0" Command="{Binding ToggleRevealCommand}" ToolTip.Tip="Show / hide">
+                                <TextBox AutomationProperties.Name="Password" Classes="mono" Text="{Binding Password}" PasswordChar="•" RevealPassword="{Binding RevealPassword}" />
+                                <Button AutomationProperties.Name="Show or hide password" Grid.Column="1" Classes="icon" Margin="4,0,0,0" Command="{Binding ToggleRevealCommand}" ToolTip.Tip="Show / hide">
                                     <PathIcon Data="{StaticResource IconEye}" />
                                 </Button>
-                                <Button Grid.Column="2" Classes="icon" Command="{Binding CopyPasswordCommand}" ToolTip.Tip="Copy password (clears automatically)">
+                                <Button AutomationProperties.Name="Copy password" Grid.Column="2" Classes="icon" Command="{Binding CopyPasswordCommand}" ToolTip.Tip="Copy password (clears automatically)">
                                     <PathIcon Data="{StaticResource IconCopy}" />
                                 </Button>
-                                <Button Grid.Column="3" Classes="icon" Command="{Binding ToggleGeneratorCommand}" ToolTip.Tip="Generate a password">
+                                <Button AutomationProperties.Name="Generate a password" Grid.Column="3" Classes="icon" Command="{Binding ToggleGeneratorCommand}" ToolTip.Tip="Generate a password">
                                     <PathIcon Data="{StaticResource IconRefresh}" />
                                 </Button>
                             </Grid>
@@ -109,7 +116,7 @@
                                             <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap"
                                                        Text="Kept each time you save a new password, in case a site's password change didn't go through." />
                                         </StackPanel>
-                                        <Button Grid.Column="1" Classes="icon" Command="{Binding ToggleHistoryRevealCommand}" ToolTip.Tip="Show / hide old passwords" VerticalAlignment="Top">
+                                        <Button AutomationProperties.Name="Show or hide old passwords" Grid.Column="1" Classes="icon" Command="{Binding ToggleHistoryRevealCommand}" ToolTip.Tip="Show / hide old passwords" VerticalAlignment="Top">
                                             <PathIcon Data="{StaticResource IconEye}" />
                                         </Button>
                                         <Button Grid.Column="2" Classes="ghost danger" FontSize="12" Content="Clear history" Command="{Binding ClearHistoryCommand}" VerticalAlignment="Top" />
@@ -124,7 +131,7 @@
                                                     <Grid ColumnDefinitions="*,Auto,Auto,Auto">
                                                         <TextBlock Classes="mono" Text="{Binding Display}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                                         <TextBlock Grid.Column="1" Classes="dim" FontSize="12" Text="{Binding WhenText}" VerticalAlignment="Center" Margin="12,0" />
-                                                        <Button Grid.Column="2" Classes="icon" ToolTip.Tip="Copy this old password"
+                                                        <Button AutomationProperties.Name="Copy this old password" Grid.Column="2" Classes="icon" ToolTip.Tip="Copy this old password"
                                                                 Command="{Binding $parent[ItemsControl].((vm:EntryEditorViewModel)DataContext).CopyOldPasswordCommand}"
                                                                 CommandParameter="{Binding}">
                                                             <PathIcon Data="{StaticResource IconCopy}" />
@@ -189,8 +196,8 @@
                         <StackPanel IsVisible="{Binding IsLogin}">
                             <TextBlock Classes="label" Text="Website" />
                             <Grid ColumnDefinitions="*,Auto">
-                                <TextBox Text="{Binding Url}" PlaceholderText="https://…" />
-                                <Button Grid.Column="1" Classes="icon" Margin="4,0,0,0" Command="{Binding OpenUrlCommand}"
+                                <TextBox AutomationProperties.Name="Website" Text="{Binding Url}" PlaceholderText="https://…" />
+                                <Button AutomationProperties.Name="Open website in browser" Grid.Column="1" Classes="icon" Margin="4,0,0,0" Command="{Binding OpenUrlCommand}"
                                         IsEnabled="{Binding HasUrl}" ToolTip.Tip="Open in browser (Ctrl+U)">
                                     <PathIcon Data="{StaticResource IconOpen}" />
                                 </Button>
@@ -228,16 +235,16 @@
                     <StackPanel Spacing="14">
                         <StackPanel>
                             <TextBlock Classes="label" Text="Name on card" />
-                            <TextBox Text="{Binding CardholderName}" />
+                            <TextBox AutomationProperties.Name="Cardholder name" Text="{Binding CardholderName}" />
                         </StackPanel>
                         <StackPanel Spacing="5">
                             <TextBlock Classes="label" Text="Card number" Margin="0" />
                             <Grid ColumnDefinitions="*,Auto,Auto">
-                                <TextBox Classes="mono" Text="{Binding CardNumber}" PasswordChar="•" RevealPassword="{Binding RevealCard}" />
-                                <Button Grid.Column="1" Classes="icon" Margin="4,0,0,0" Command="{Binding ToggleRevealCardCommand}" ToolTip.Tip="Show / hide card details">
+                                <TextBox AutomationProperties.Name="Card number" Classes="mono" Text="{Binding CardNumber}" PasswordChar="•" RevealPassword="{Binding RevealCard}" />
+                                <Button AutomationProperties.Name="Show or hide card details" Grid.Column="1" Classes="icon" Margin="4,0,0,0" Command="{Binding ToggleRevealCardCommand}" ToolTip.Tip="Show / hide card details">
                                     <PathIcon Data="{StaticResource IconEye}" />
                                 </Button>
-                                <Button Grid.Column="2" Classes="icon" Command="{Binding CopyCardNumberCommand}" ToolTip.Tip="Copy card number">
+                                <Button AutomationProperties.Name="Copy card number" Grid.Column="2" Classes="icon" Command="{Binding CopyCardNumberCommand}" ToolTip.Tip="Copy card number">
                                     <PathIcon Data="{StaticResource IconCopy}" />
                                 </Button>
                             </Grid>
@@ -246,13 +253,13 @@
                         <Grid ColumnDefinitions="*,*,*">
                             <StackPanel>
                                 <TextBlock Classes="label" Text="Expires (MM/YY)" />
-                                <TextBox Text="{Binding CardExpiry}" PlaceholderText="08/29" />
+                                <TextBox AutomationProperties.Name="Expiry date" Text="{Binding CardExpiry}" PlaceholderText="08/29" />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Margin="10,0">
                                 <TextBlock Classes="label" Text="Security code" />
                                 <Grid ColumnDefinitions="*,Auto">
-                                    <TextBox Classes="mono" Text="{Binding CardCode}" PasswordChar="•" RevealPassword="{Binding RevealCard}" />
-                                    <Button Grid.Column="1" Classes="icon" Command="{Binding CopyCardCodeCommand}" ToolTip.Tip="Copy security code">
+                                    <TextBox AutomationProperties.Name="Security code" Classes="mono" Text="{Binding CardCode}" PasswordChar="•" RevealPassword="{Binding RevealCard}" />
+                                    <Button AutomationProperties.Name="Copy security code" Grid.Column="1" Classes="icon" Command="{Binding CopyCardCodeCommand}" ToolTip.Tip="Copy security code">
                                         <PathIcon Data="{StaticResource IconCopy}" />
                                     </Button>
                                 </Grid>
@@ -260,8 +267,8 @@
                             <StackPanel Grid.Column="2">
                                 <TextBlock Classes="label" Text="PIN" />
                                 <Grid ColumnDefinitions="*,Auto">
-                                    <TextBox Classes="mono" Text="{Binding CardPin}" PasswordChar="•" RevealPassword="{Binding RevealCard}" />
-                                    <Button Grid.Column="1" Classes="icon" Command="{Binding CopyCardPinCommand}" ToolTip.Tip="Copy PIN">
+                                    <TextBox AutomationProperties.Name="PIN" Classes="mono" Text="{Binding CardPin}" PasswordChar="•" RevealPassword="{Binding RevealCard}" />
+                                    <Button AutomationProperties.Name="Copy PIN" Grid.Column="1" Classes="icon" Command="{Binding CopyCardPinCommand}" ToolTip.Tip="Copy PIN">
                                         <PathIcon Data="{StaticResource IconCopy}" />
                                     </Button>
                                 </Grid>
@@ -302,14 +309,14 @@
                                     <TextBlock Text="Backup codes" FontWeight="SemiBold" />
                                     <TextBlock Classes="dim" FontSize="12" Text="Paste them here, one per line. They're sealed with your recovery passphrase and lock again after 3 minutes." TextWrapping="Wrap" />
                                 </StackPanel>
-                                <Button Grid.Column="1" Classes="icon" Command="{Binding CopyCodesCommand}" ToolTip.Tip="Copy all codes" VerticalAlignment="Top">
+                                <Button AutomationProperties.Name="Copy all backup codes" Grid.Column="1" Classes="icon" Command="{Binding CopyCodesCommand}" ToolTip.Tip="Copy all codes" VerticalAlignment="Top">
                                     <PathIcon Data="{StaticResource IconCopy}" />
                                 </Button>
-                                <Button Grid.Column="2" Classes="icon" Command="{Binding LockCodesCommand}" ToolTip.Tip="Lock codes now" VerticalAlignment="Top">
+                                <Button AutomationProperties.Name="Lock backup codes" Grid.Column="2" Classes="icon" Command="{Binding LockCodesCommand}" ToolTip.Tip="Lock codes now" VerticalAlignment="Top">
                                     <PathIcon Data="{StaticResource IconLock}" />
                                 </Button>
                             </Grid>
-                            <TextBox Classes="multi mono" MinHeight="110" Text="{Binding BackupCodes}" PlaceholderText="1234 5678&#10;2345 6789&#10;…" />
+                            <TextBox AutomationProperties.Name="Backup codes" Classes="multi mono" MinHeight="110" Text="{Binding BackupCodes}" PlaceholderText="1234 5678&#10;2345 6789&#10;…" />
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -336,20 +343,20 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:CustomFieldRowViewModel">
                                     <Grid ColumnDefinitions="200,*,Auto,Auto,Auto,Auto">
-                                        <TextBox Text="{Binding Name}" PlaceholderText="Label" />
-                                        <TextBox Grid.Column="1" Margin="8,0,0,0" Text="{Binding Value}" PlaceholderText="Value"
+                                        <TextBox AutomationProperties.Name="Field label" Text="{Binding Name}" PlaceholderText="Label" />
+                                        <TextBox AutomationProperties.Name="Field value" Grid.Column="1" Margin="8,0,0,0" Text="{Binding Value}" PlaceholderText="Value"
                                                  PasswordChar="•" RevealPassword="{Binding ShowPlain}" />
-                                        <Button Grid.Column="2" Classes="icon" Margin="4,0,0,0" Command="{Binding ToggleRevealCommand}"
+                                        <Button AutomationProperties.Name="Show or hide field value" Grid.Column="2" Classes="icon" Margin="4,0,0,0" Command="{Binding ToggleRevealCommand}"
                                                 IsVisible="{Binding Hidden}" ToolTip.Tip="Show / hide">
                                             <PathIcon Data="{StaticResource IconEye}" />
                                         </Button>
-                                        <Button Grid.Column="3" Classes="icon" ToolTip.Tip="Copy value"
+                                        <Button AutomationProperties.Name="Copy field value" Grid.Column="3" Classes="icon" ToolTip.Tip="Copy value"
                                                 Command="{Binding $parent[ItemsControl].((vm:EntryEditorViewModel)DataContext).CopyFieldCommand}"
                                                 CommandParameter="{Binding}">
                                             <PathIcon Data="{StaticResource IconCopy}" />
                                         </Button>
                                         <CheckBox Grid.Column="4" Content="Hide" IsChecked="{Binding Hidden}" Margin="6,0,0,0" />
-                                        <Button Grid.Column="5" Classes="icon danger" ToolTip.Tip="Remove field"
+                                        <Button AutomationProperties.Name="Remove field" Grid.Column="5" Classes="icon danger" ToolTip.Tip="Remove field"
                                                 Command="{Binding $parent[ItemsControl].((vm:EntryEditorViewModel)DataContext).RemoveFieldCommand}"
                                                 CommandParameter="{Binding}">
                                             <PathIcon Data="{StaticResource IconClose}" />
@@ -398,7 +405,7 @@
                                                     <TextBlock Text="Save copy…" />
                                                 </StackPanel>
                                             </Button>
-                                            <Button Grid.Column="3" Classes="icon danger" ToolTip.Tip="Remove from vault"
+                                            <Button AutomationProperties.Name="Remove attachment" Grid.Column="3" Classes="icon danger" ToolTip.Tip="Remove from vault"
                                                     Command="{Binding $parent[ItemsControl].((vm:EntryEditorViewModel)DataContext).RemoveAttachmentCommand}"
                                                     CommandParameter="{Binding}">
                                                 <PathIcon Data="{StaticResource IconTrash}" />
@@ -416,11 +423,11 @@
                     <StackPanel Spacing="14">
                         <StackPanel IsVisible="{Binding IsNotNote}">
                             <TextBlock Classes="label" Text="Notes" />
-                            <TextBox Classes="multi" MinHeight="80" Text="{Binding Notes}" PlaceholderText="Anything else worth remembering" />
+                            <TextBox AutomationProperties.Name="Notes" Classes="multi" MinHeight="80" Text="{Binding Notes}" PlaceholderText="Anything else worth remembering" />
                         </StackPanel>
                         <StackPanel>
                             <TextBlock Classes="label" Text="Tags (comma separated)" />
-                            <TextBox Text="{Binding Tags}" PlaceholderText="e.g. games, school, banking" />
+                            <TextBox AutomationProperties.Name="Tags" Text="{Binding Tags}" PlaceholderText="e.g. games, school, banking" />
                         </StackPanel>
                         <CheckBox IsChecked="{Binding Reprompt}">
                             <StackPanel>

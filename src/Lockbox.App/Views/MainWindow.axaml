@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Lockbox.App.ViewModels"
+        xmlns:c="using:Lockbox.App.Controls"
         x:Class="Lockbox.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="{Binding WindowTitle}"
@@ -26,7 +27,7 @@
                         <TextBlock Classes="dim" FontSize="12" Text="Downloading and checking signature…" />
                     </StackPanel>
                 </Panel>
-                <Button Grid.Column="4" Classes="icon" Command="{Binding DismissUpdateCommand}" ToolTip.Tip="Later" Margin="6,0,0,0"
+                <Button AutomationProperties.Name="Dismiss update notice" Grid.Column="4" Classes="icon" Command="{Binding DismissUpdateCommand}" ToolTip.Tip="Later" Margin="6,0,0,0"
                         IsVisible="{Binding UpdateIdle}">
                     <PathIcon Data="{StaticResource IconClose}" />
                 </Button>
@@ -38,16 +39,17 @@
         <!-- In-window dialog -->
         <Panel Grid.RowSpan="2" IsVisible="{Binding Dialog, Converter={x:Static ObjectConverters.IsNotNull}}">
             <Border Background="#B8000000" />
-            <Border Classes="card" Width="500" MaxHeight="640" HorizontalAlignment="Center" VerticalAlignment="Center"
+            <Border Classes="card" Width="{Binding Width}" MaxHeight="640" HorizontalAlignment="Center" VerticalAlignment="Center"
                     DataContext="{Binding Dialog}" x:DataType="vm:DialogViewModel" BoxShadow="0 20 60 0 #80000000">
                 <ScrollViewer>
                     <StackPanel Spacing="14">
                         <TextBlock Classes="h2" Text="{Binding Title}" TextWrapping="Wrap" />
-                        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Classes="dim" LineHeight="21" />
+                        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Classes="dim" LineHeight="21" IsVisible="{Binding IsPlainText}" />
+                        <c:MarkdownView Markdown="{Binding Message}" IsVisible="{Binding IsMarkdown}" />
 
                         <StackPanel IsVisible="{Binding HasInput}">
                             <TextBlock Classes="label" Text="{Binding InputLabel}" />
-                            <TextBox Name="DialogInput" Text="{Binding Input}" PasswordChar="•" Classes="revealPasswordButton">
+                            <TextBox AutomationProperties.Name="Answer" Name="DialogInput" Text="{Binding Input}" PasswordChar="•" Classes="revealPasswordButton">
                                 <TextBox.KeyBindings>
                                     <KeyBinding Gesture="Enter" Command="{Binding SubmitCommand}" />
                                 </TextBox.KeyBindings>
@@ -55,7 +57,7 @@
                         </StackPanel>
                         <StackPanel IsVisible="{Binding HasConfirm}">
                             <TextBlock Classes="label" Text="{Binding ConfirmLabel}" />
-                            <TextBox Text="{Binding ConfirmInput}" PasswordChar="•" Classes="revealPasswordButton">
+                            <TextBox AutomationProperties.Name="Confirm answer" Text="{Binding ConfirmInput}" PasswordChar="•" Classes="revealPasswordButton">
                                 <TextBox.KeyBindings>
                                     <KeyBinding Gesture="Enter" Command="{Binding SubmitCommand}" />
                                 </TextBox.KeyBindings>

@@ -150,7 +150,9 @@ public static class UpdateSigning
     /// <summary>Decrypts a signing key file. Throws <see cref="WrongCredentialsException"/> on a wrong passphrase.</summary>
     public static byte[] UnprotectPrivateKey(string fileText, string passphrase)
     {
-        var file = JsonSerializer.Deserialize(fileText, UpdateJson.Default.SigningKeyFile);
+        SigningKeyFile? file;
+        try { file = JsonSerializer.Deserialize(fileText, UpdateJson.Default.SigningKeyFile); }
+        catch (JsonException) { file = null; }
         if (file == null || file.Format != KeyFileFormat) throw new VaultFormatException("This isn't a Lockbox signing key file.");
         if (!file.Kdf.IsWithinLimits) throw new VaultFormatException("The signing key file has out-of-range settings.");
         using var k = VaultCrypto.DerivePassphraseKey(passphrase, file.Salt, file.Kdf, KeyPurpose);

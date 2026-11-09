@@ -8,10 +8,14 @@ using Lockbox.Core.Crypto;
 internal static class Smoke
 {
     private static int _failures;
+    private static readonly List<string> _log = [];
+
+    /// <summary>One line per check, "PASS  …" or "FAIL  …", from the last <see cref="RunAll"/>.</summary>
+    public static IReadOnlyList<string> Log => _log;
 
     private static void Check(bool ok, string what)
     {
-        Console.WriteLine($"{(ok ? "PASS" : "FAIL")}  {what}");
+        _log.Add($"{(ok ? "PASS" : "FAIL")}  {what}");
         if (!ok) _failures++;
     }
 
@@ -138,7 +142,7 @@ internal static class Smoke
         // ── Lock ──
         Run(vault.LockCommand.ExecuteAsync(null));
         Check(vm.ActiveVault == null && vm.CurrentPage is UnlockViewModel, "lock returns to unlock screen");
-        Check(Assert.Throws<ObjectDisposedException>(() => vault.Vault.Save()), "locked vault object is unusable");
+        Check(Expect.Throws<ObjectDisposedException>(() => vault.Vault.Save()), "locked vault object is unusable");
 
         // ── Unlock: wrong password, then right ──
         var unlock = (UnlockViewModel)vm.CurrentPage!;
@@ -208,6 +212,29 @@ internal static class Smoke
         Run(st.SaveEncryptedCopyCommand.ExecuteAsync(null));
         using (var copy = Vault.Open(copyPath, newMaster, secret))
             Check(copy.Entries.Count == 3, "encrypted copy opens with the same credentials");
+
+        // ── Recent vaults on the unlock screen ──
+        var recentUnlock = new UnlockViewModel(vm);
+        Check(!recentUnlock.HasRecent && recentUnlock.Recent.Count == 1 && recentUnlock.Recent[0].IsCurrent,
+            "with one vault there's no recent list, just the remembered path");
+        vm.Navigate(recentUnlock);
+        recentUnlock.VaultPath = copyPath;
+        recentUnlock.KeyFilePath = keyPath;
+        recentUnlock.RememberKeyFileLocation = true;
+        recentUnlock.Password = newMaster;
+        Run(recentUnlock.UnlockCommand.ExecuteAsync(null));
+        Check(vm.ActiveVault?.Vault.FilePath == copyPath, "the copy opens from the unlock screen");
+        Run(vm.ActiveVault!.LockCommand.ExecuteAsync(null));
+        var again = (UnlockViewModel)vm.CurrentPage!;
+        Check(again.HasRecent && again.Recent.Select(r => r.Path).SequenceEqual([copyPath, vaultPath]) && again.Recent[0].IsCurrent,
+            "both vaults listed, newest first");
+        again.PickRecentCommand.Execute(again.Recent[1]);
+        Check(again.VaultPath == vaultPath && again.KeyFilePath == "" && !again.RememberKeyFileLocation,
+            "picking a recent vault fills in its path (and its key file only if you asked to remember it)");
+        again.PickRecentCommand.Execute(again.Recent[0]);
+        Check(again.VaultPath == copyPath && again.KeyFilePath == keyPath && again.RememberKeyFileLocation, "remembered key file location comes back with its vault");
+        again.ForgetRecentCommand.Execute(again.Recent[0]);
+        Check(new UnlockViewModel(vm).Recent.Select(r => r.Path).SequenceEqual([vaultPath]), "Remove from this list forgets it");
 
         fake.NextSavePath = csvPath;
         var export = st.ExportCsvCommand.ExecuteAsync(null);
@@ -295,6 +322,74 @@ internal static class Smoke
         Run(rmAtt);
         Check(gEd.Attachments.Count == 0 && fv.Vault.TotalAttachmentBytes == 0, "attachment removed");
 
+        // ── Import a browser export (CSV) ──
+        string chromeCsv = Path.Combine(dir, "Chrome Passwords.csv");
+        File.WriteAllText(chromeCsv,
+            "name,url,username,password,note\r\n" +
+            "Steam,https://store.steampowered.com/login,tylerjp,St3amPass!,\r\n" +          // already in the vault
+            "netflix.com,https://www.netflix.com/login,tyler@example.com,\"hunter,2\",\r\n" +
+            "netflix.com,https://www.netflix.com/login,tyler@example.com,\"hunter,2\",\r\n" + // exported twice
+            ",android://Zm9v@com.spotify.music/,tyler@example.com,Sp0tify!Tunes,\"from my phone\"\r\n");
+        var csvImport = new ImportViewModel(fv);
+        fvm.Navigate(csvImport);
+        fake.NextOpenPath = chromeCsv;
+        Run(csvImport.OpenFileCommand.ExecuteAsync(null));
+        csvImport.FindLoginsCommand.Execute(null);
+        Check(csvImport.Rows.Count == 4 && csvImport.Summary.StartsWith("Read as a Chrome, Edge or Brave export"), $"Chrome CSV recognized ({csvImport.Summary})");
+        Check(!csvImport.Rows[0].Include && !csvImport.Rows[2].Include && csvImport.Rows[1].Include && csvImport.Rows[3].Include,
+            "existing login and the repeated row start unticked");
+        Check(csvImport.Rows[3].Title == "Spotify (Android app)", "Android app logins get a readable name");
+        int before = fv.Vault.Entries.Count;
+        var csvTask = csvImport.ImportCommand.ExecuteAsync(null);
+        AnswerDialog(fvm, "delete");                       // overwrite and delete the CSV
+        Run(csvTask);
+        Check(fv.Vault.Entries.Count == before + 2 && fv.Vault.Entries.Any(e => e.Title == "netflix.com" && e.Password == "hunter,2"),
+            "CSV logins imported, quoted commas intact");
+        Check(!File.Exists(chromeCsv), "the plaintext CSV is overwritten and deleted on request");
+
+        // ── Auto-type (fake keyboard: checks what would be typed where) ──
+        var keyboard = new FakeAutoType();
+        fake.FakeKeyboard = keyboard;
+        fv.RefreshAutoType();
+        Check(keyboard.Hotkey == null && !fv.AutoTypeAvailable, "auto-type is off until you turn it on");
+        var st2 = new SettingsViewModel(fv) { AutoTypeEnabled = true };
+        Check(keyboard.Hotkey != null && fv.AutoTypeAvailable, "turning it on in Settings starts the hotkey");
+
+        keyboard.Title = "Netflix - Personal - Microsoft\u200b Edge";
+        Run(fv.AutoTypeFromHotkeyAsync());
+        Check(keyboard.Typed.LastOrDefault() == "tyler@example.com{TAB}hunter,2{ENTER}", $"hotkey types the matching login ({keyboard.Typed.LastOrDefault()})");
+
+        keyboard.Title = "A recipe blog - Google Chrome";
+        int typedBefore = keyboard.Typed.Count;
+        Run(fv.AutoTypeFromHotkeyAsync());
+        Check(keyboard.Typed.Count == typedBefore && keyboard.BroughtForward && fv.Status.StartsWith("No login matched"),
+            "no match: nothing is typed and Lockbox comes forward to pick one");
+
+        keyboard.Foreground = FakeAutoType.LockboxWindow;
+        Run(fv.AutoTypeFromHotkeyAsync());
+        Check(keyboard.Typed.Count == typedBefore, "the hotkey does nothing inside Lockbox itself");
+        keyboard.Foreground = FakeAutoType.BrowserWindow;
+
+        fv.Selected = fv.Items.First(i => i.Title == "Google");
+        Check(fv.Editor!.ShowAutoType, "logins show an Auto-type button");
+        Run(fv.Editor.AutoTypeCommand.ExecuteAsync(null));
+        Check(keyboard.Typed.LastOrDefault() == "me@gmail.com{TAB}G00gle$ecret{ENTER}", "Auto-type button types into the previous window");
+
+        fv.Selected = fv.Items.First(i => i.Title == "Steam");
+        var googleEntry = fv.Vault.Entries.Single(e => e.Title == "Google").Clone();
+        googleEntry.Reprompt = true;
+        googleEntry.Fields.Add(new Lockbox.Core.Model.CustomField("Auto-type", "{USERNAME}{ENTER}{DELAY 1500}{PASSWORD}{ENTER}", false));
+        fv.Vault.UpdateEntry(googleEntry);
+        keyboard.Title = "Sign in - Google Accounts - Google Chrome";
+        var protectedType = fv.AutoTypeFromHotkeyAsync();
+        AnswerDialog(fvm, "ok", newMaster);                // protected login asks for the master password first
+        Run(protectedType);
+        Check(keyboard.Typed.LastOrDefault() == "me@gmail.com{ENTER}{DELAY}G00gle$ecret{ENTER}", "protected login typed after the master password, using its Auto-type field");
+
+        st2.AutoTypeEnabled = false;
+        Check(keyboard.Hotkey == null && !fv.Editor!.ShowAutoType, "turning it off stops the hotkey and hides the button");
+        st2.AutoTypeEnabled = true;
+
         // ── Check-up ──
         fv.OpenCheckupCommand.Execute(null);
         var checkup = fvm.CurrentPage as CheckupViewModel;
@@ -304,13 +399,14 @@ internal static class Smoke
         Check(fvm.CurrentPage == fv && fv.Selected?.Id == someItem.Id, "Fix → jumps to that item");
 
         fv.Dispose();
+        Check(keyboard.Hotkey == null, "locking the vault stops the auto-type hotkey");
 
         // ── Updates (no signing key in this build → never installs anything) ──
         var upd = new Lockbox.App.Services.UpdateService();
         var res = upd.CheckAsync().GetAwaiter().GetResult();
         Check(res.Status == Lockbox.App.Services.UpdateCheckStatus.NotConfigured || Lockbox.App.Services.UpdateService.IsConfigured,
             "without a signing key, the updater stays off");
-        Check(Assert.Throws<InvalidOperationException>(() => upd.DownloadVerifyAndRestartAsync(_ => { }, () => { }).GetAwaiter().GetResult()),
+        Check(Expect.Throws<InvalidOperationException>(() => upd.DownloadVerifyAndRestartAsync(_ => { }, () => { }).GetAwaiter().GetResult()),
             "installing without a checked update is refused");
 
         // ── Nothing readable on disk ──
@@ -320,7 +416,6 @@ internal static class Smoke
 
         w.Close();
         Directory.Delete(dir, true);
-        Console.WriteLine(_failures == 0 ? "\nALL SMOKE CHECKS PASSED" : $"\n{_failures} SMOKE CHECK(S) FAILED");
         return _failures;
     }
 
@@ -332,11 +427,43 @@ internal static class Smoke
         public Lockbox.App.Services.SecureClipboard Clipboard { get; } = new(() => null, () => 0);
         public Task<string?> PickOpenFileAsync(string title, string filterName, params string[] patterns) => Task.FromResult(NextOpenPath);
         public Task<string?> PickSaveFileAsync(string title, string suggestedName, string extension, string filterName) => Task.FromResult(NextSavePath);
+        public FakeAutoType? FakeKeyboard;
+        public Lockbox.App.Services.IAutoTypeHost? AutoType => FakeKeyboard;
         public void OpenUrl(string url) { }
         public void OpenFolder(string path) { }
     }
 
-    private static class Assert
+    private sealed class FakeAutoType : Lockbox.App.Services.IAutoTypeHost
+    {
+        public const nint BrowserWindow = 42, LockboxWindow = 1;
+        public Action? Hotkey;
+        public nint Foreground = BrowserWindow, Previous = BrowserWindow;
+        public string Title = "";
+        public bool BroughtForward;
+        public readonly List<string> Typed = [];
+
+        public bool RegisterHotkey(Action onPressed) { Hotkey = onPressed; return true; }
+        public void UnregisterHotkey() => Hotkey = null;
+        public nint ForegroundWindow() => Foreground;
+        public nint PreviousWindow => Previous;
+        public string WindowTitle(nint window) => Title;
+        public bool IsLockboxWindow(nint window) => window == LockboxWindow;
+        public void BringLockboxToFront() => BroughtForward = true;
+
+        public Task<Lockbox.App.Services.AutoTypeResult> TypeAsync(nint window, IReadOnlyList<Lockbox.Core.Tools.AutoTypeStep> steps)
+        {
+            Typed.Add(string.Concat(steps.Select(st => st.Kind switch
+            {
+                Lockbox.Core.Tools.AutoTypeStep.Kinds.Text => st.Text,
+                Lockbox.Core.Tools.AutoTypeStep.Kinds.Tab => "{TAB}",
+                Lockbox.Core.Tools.AutoTypeStep.Kinds.Enter => "{ENTER}",
+                _ => "{DELAY}",
+            })));
+            return Task.FromResult(Lockbox.App.Services.AutoTypeResult.Typed);
+        }
+    }
+
+    private static class Expect
     {
         public static bool Throws<T>(Action a) where T : Exception
         {

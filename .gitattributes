@@ -1,0 +1,27 @@
+# Normalize line endings: LF in the repo, native on checkout.
+* text=auto
+
+# Windows-only files keep CRLF.
+*.bat     text eol=crlf
+*.cmd     text eol=crlf
+*.ps1     text eol=crlf
+
+# Shell scripts must stay LF.
+*.sh      text eol=lf
+
+# Binary files: never touch.
+*.png     binary
+*.jpg     binary
+*.gif     binary
+*.ico     binary
+*.lbx     binary
+*.lbxkey  binary
+*.nupkg   binary
+*.exe     binary
+*.dll     binary
+
+# The passphrase word list is data; keep it byte-for-byte.
+*.wordlist -text
+
+# Language stats on GitHub: generated or vendored content isn't "our" code.
+docs/images/** linguist-documentation

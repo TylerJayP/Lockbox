@@ -21,18 +21,18 @@
                         <Image Source="/Assets/lockbox.png" Width="26" Height="26" />
                         <TextBlock Grid.Column="1" Classes="h3" Text="{Binding VaultName}" VerticalAlignment="Center" Margin="10,0,0,0"
                                    TextTrimming="CharacterEllipsis" />
-                        <Button Grid.Column="2" Classes="icon" Command="{Binding OpenCheckupCommand}" ToolTip.Tip="Security check-up">
+                        <Button AutomationProperties.Name="Security check-up" Grid.Column="2" Classes="icon" Command="{Binding OpenCheckupCommand}" ToolTip.Tip="Security check-up">
                             <PathIcon Data="{StaticResource IconShield}" />
                         </Button>
-                        <Button Grid.Column="3" Classes="icon" Command="{Binding OpenSettingsCommand}" ToolTip.Tip="Settings">
+                        <Button AutomationProperties.Name="Settings" Grid.Column="3" Classes="icon" Command="{Binding OpenSettingsCommand}" ToolTip.Tip="Settings">
                             <PathIcon Data="{StaticResource IconCog}" />
                         </Button>
-                        <Button Grid.Column="4" Classes="icon" Command="{Binding LockCommand}" ToolTip.Tip="Lock now (Ctrl+L)">
+                        <Button AutomationProperties.Name="Lock now" Grid.Column="4" Classes="icon" Command="{Binding LockCommand}" ToolTip.Tip="Lock now (Ctrl+L)">
                             <PathIcon Data="{StaticResource IconLock}" />
                         </Button>
                     </Grid>
 
-                    <TextBox Grid.Row="1" Name="SearchBox" Margin="14,0,14,10" Text="{Binding Search}" PlaceholderText="Search (Ctrl+F)">
+                    <TextBox AutomationProperties.Name="Search" Grid.Row="1" Name="SearchBox" Margin="14,0,14,10" Text="{Binding Search}" PlaceholderText="Search (Ctrl+F)">
                         <TextBox.InnerLeftContent>
                             <PathIcon Data="{StaticResource IconSearch}" Margin="10,0,0,0" Foreground="{StaticResource TextDim}" />
                         </TextBox.InnerLeftContent>
@@ -69,7 +69,7 @@
                                 Command="{Binding OpenImportCommand}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <PathIcon Data="{StaticResource IconImport}" />
-                                <TextBlock Text="Import .txt" />
+                                <TextBlock Text="Import" />
                             </StackPanel>
                         </Button>
                     </Grid>
@@ -152,7 +152,7 @@
                     <StackPanel Grid.Row="5" Margin="24,30" Spacing="8" IsVisible="{Binding IsEmpty}">
                         <TextBlock Classes="h3" Text="Nothing here yet" HorizontalAlignment="Center" />
                         <TextBlock Classes="dim" TextWrapping="Wrap" TextAlignment="Center"
-                                   Text="Add a login, note, card or Wi-Fi network with New item, or bring in your old text file with Import .txt." />
+                                   Text="Add a login, note, card or Wi-Fi network with New item, or bring in passwords from your browser, another password manager or a text file with Import." />
                     </StackPanel>
                     <TextBlock Grid.Row="5" Classes="dim" Margin="24,30" TextAlignment="Center" TextWrapping="Wrap"
                                IsVisible="{Binding HasNoMatches}" Text="Nothing matches. Press Esc in the search box to clear filters." />

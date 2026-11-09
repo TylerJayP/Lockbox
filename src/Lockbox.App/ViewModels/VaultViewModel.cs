@@ -46,6 +46,7 @@ public partial class VaultViewModel : ObservableObject, IDisposable
             SystemEvents.SessionSwitch += OnSessionSwitch;
             SystemEvents.PowerModeChanged += OnPowerModeChanged;
         }
+        RefreshAutoType();
     }
 
     public Vault Vault { get; }
@@ -225,6 +226,114 @@ public partial class VaultViewModel : ObservableObject, IDisposable
         if (secret && !await EnsureUnsealedAsync(e)) return;
         await CopySecretAsync(value, what);
     }
+
+    // ───────────── auto-type (Windows) ─────────────
+
+    public const string AutoTypeHotkey = "Ctrl+Alt+A";
+    private bool _hotkeyRegistered;
+    private bool _autoTyping;
+
+    /// <summary>Auto-type is turned on and this system supports it.</summary>
+    public bool AutoTypeAvailable => !_disposed && _main.Settings.AutoTypeEnabled && Platform.AutoType != null;
+
+    /// <summary>Whether the global hotkey is live (false if another app already owns it).</summary>
+    public bool AutoTypeHotkeyActive => _hotkeyRegistered;
+
+    /// <summary>Starts or stops listening for the hotkey to match the setting. Only listens while this vault is unlocked.</summary>
+    public void RefreshAutoType()
+    {
+        if (Platform.AutoType is not { } host) return;
+        if (AutoTypeAvailable)
+        {
+            if (!_hotkeyRegistered)
+            {
+                _hotkeyRegistered = host.RegisterHotkey(() => _ = AutoTypeFromHotkeyAsync());
+                if (!_hotkeyRegistered)
+                    Status = $"Auto-type: {AutoTypeHotkey} is already used by another app, so use the Auto-type button on an item instead.";
+            }
+        }
+        else if (_hotkeyRegistered)
+        {
+            host.UnregisterHotkey();
+            _hotkeyRegistered = false;
+        }
+        OnPropertyChanged(nameof(AutoTypeAvailable));
+        OnPropertyChanged(nameof(AutoTypeHotkeyActive));
+        Editor?.NotifyAutoTypeChanged();
+    }
+
+    /// <summary>Hotkey pressed in another app: type the login that matches its window, or let you pick one.</summary>
+    public async Task AutoTypeFromHotkeyAsync()
+    {
+        if (_disposed || _autoTyping || Platform.AutoType is not { } host) return;
+        nint target = host.ForegroundWindow();
+        if (target == 0 || host.IsLockboxWindow(target)) return;
+
+        string title = host.WindowTitle(target);
+        var matches = AutoTypeMatcher.Find(Vault.Entries, title);
+        if (matches.Count == 1)
+        {
+            await AutoTypeAsync(matches[0].Entry, target);
+            return;
+        }
+
+        // None or several: show Lockbox so you can pick. Auto-type on the item then types into that window.
+        host.BringLockboxToFront();
+        ClearSearch();
+        if (matches.Count > 1)
+        {
+            Search = matches[0].MatchedOn;
+            Selected = Items.FirstOrDefault(i => i.Id == matches[0].Entry.Id) ?? Items.FirstOrDefault();
+        }
+        Status = matches.Count == 0
+            ? $"No login matched \"{Shorten(title)}\". Pick one, then click Auto-type to type it there."
+            : $"{matches.Count} logins match \"{Shorten(title)}\". Pick one, then click Auto-type.";
+    }
+
+    /// <summary>Auto-type button on an item: types it into the window you were in before Lockbox.</summary>
+    public async Task AutoTypeEntryAsync(Guid id)
+    {
+        if (Platform.AutoType is not { } host) return;
+        Editor?.ApplyToVault();
+        var e = Vault.Entries.FirstOrDefault(x => x.Id == id);
+        if (e == null || e.Type != ItemType.Login) return;
+        nint target = host.PreviousWindow;
+        if (target == 0)
+        {
+            Status = "Click into the sign-in form you want to fill, then come back and click Auto-type.";
+            return;
+        }
+        await AutoTypeAsync(e, target);
+    }
+
+    private async Task AutoTypeAsync(Entry entry, nint target)
+    {
+        if (Platform.AutoType is not { } host || _autoTyping) return;
+        if (entry.Password.Length == 0 && entry.Username.Length == 0) { Status = $"{entry.Title} has nothing to type."; return; }
+        if (entry.Reprompt)
+        {
+            host.BringLockboxToFront();
+            if (!await EnsureUnsealedAsync(entry)) return;
+        }
+
+        _autoTyping = true;
+        try
+        {
+            string window = Shorten(host.WindowTitle(target));
+            var result = await host.TypeAsync(target, AutoTypeSequence.For(entry));
+            Status = result switch
+            {
+                AutoTypeResult.Typed => $"Typed {entry.Title} into \"{window}\".",
+                AutoTypeResult.WindowGone => "That window has closed. Click into the sign-in form, then try again.",
+                AutoTypeResult.FocusMoved => "Stopped typing because a different window became active. Nothing more was typed.",
+                AutoTypeResult.KeysHeld => $"Let go of Ctrl and Alt after pressing {AutoTypeHotkey}, then try again.",
+                _ => "",
+            };
+        }
+        finally { _autoTyping = false; }
+    }
+
+    private static string Shorten(string s) => s.Length <= 60 ? s : s[..57] + "…";
 
     // ───────────── protected items ─────────────
 
@@ -507,6 +616,11 @@ public partial class VaultViewModel : ObservableObject, IDisposable
         {
             SystemEvents.SessionSwitch -= OnSessionSwitch;
             SystemEvents.PowerModeChanged -= OnPowerModeChanged;
+        }
+        if (_hotkeyRegistered)
+        {
+            Platform.AutoType?.UnregisterHotkey();
+            _hotkeyRegistered = false;
         }
         CryptographicOperations.ZeroMemory(_keyFileSecret);
         Vault.Dispose();

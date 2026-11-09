@@ -18,6 +18,13 @@ public partial class App : Application
             var window = new MainWindow();
             desktop.MainWindow = window;
 
+            Services.SingleInstance.ListenForActivation(() => Dispatcher.UIThread.Post(() =>
+            {
+                if (window.WindowState == Avalonia.Controls.WindowState.Minimized) window.WindowState = Avalonia.Controls.WindowState.Normal;
+                window.Show();
+                window.Activate();
+            }));
+
             // Never crash a password manager over a stray error: unsaved edits would be lost.
             Dispatcher.UIThread.UnhandledException += (_, e) =>
             {

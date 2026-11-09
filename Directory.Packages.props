@@ -1,0 +1,31 @@
+<Project>
+  <!-- Every NuGet version lives here, so one change (or one Dependabot PR) updates the whole repo. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup Label="UI">
+    <PackageVersion Include="Avalonia" Version="12.1.5" />
+    <PackageVersion Include="Avalonia.Desktop" Version="12.1.5" />
+    <PackageVersion Include="Avalonia.Fonts.Inter" Version="12.1.5" />
+    <PackageVersion Include="Avalonia.Headless" Version="12.1.5" />
+    <PackageVersion Include="Avalonia.Skia" Version="12.1.5" />
+    <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.1.5" />
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageVersion Include="QRCoder" Version="1.8.1" />
+  </ItemGroup>
+
+  <ItemGroup Label="Security and platform">
+    <PackageVersion Include="NSec.Cryptography" Version="26.4.0" />
+    <PackageVersion Include="zxcvbn-core" Version="7.0.92" />
+    <PackageVersion Include="Microsoft.Win32.SystemEvents" Version="10.0.0" />
+    <PackageVersion Include="Velopack" Version="1.2.161" />
+  </ItemGroup>
+
+  <ItemGroup Label="Tests">
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+</Project>

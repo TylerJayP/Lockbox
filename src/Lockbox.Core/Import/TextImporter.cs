@@ -7,6 +7,7 @@ namespace Lockbox.Core.Import;
 /// <summary>A proposed entry from the import. Everything is editable on the review screen before it's saved.</summary>
 public sealed class ImportCandidate
 {
+    public ItemType Type { get; set; } = ItemType.Login;
     public string Title { get; set; } = "";
     public string Url { get; set; } = "";
     public string Username { get; set; } = "";
@@ -15,6 +16,14 @@ public sealed class ImportCandidate
     public TwoFactorMethod TwoFactorMethod { get; set; }
     public string BackupCodes { get; set; } = "";
     public string Notes { get; set; } = "";
+    public List<string> Tags { get; } = [];
+    public List<CustomField> Fields { get; } = [];
+    public CardData? Card { get; set; }
+    public WifiData? Wifi { get; set; }
+    public bool Reprompt { get; set; }
+
+    /// <summary>Start unticked on the review screen (e.g. a duplicate row in the same export).</summary>
+    public bool SuggestSkip { get; set; }
 
     /// <summary>The original lines this candidate came from, shown on the review screen.</summary>
     public string SourceText { get; set; } = "";
@@ -26,16 +35,45 @@ public sealed class ImportCandidate
     internal bool IsTitleOnly => Title.Length > 0 && Url.Length == 0 && !HasCredentials && BackupCodes.Length == 0 && Notes.Length == 0;
     internal bool IsEmpty => Title.Length == 0 && Url.Length == 0 && !HasCredentials && BackupCodes.Length == 0 && Notes.Length == 0;
 
-    public Entry ToEntry() => new()
+    public Entry ToEntry()
     {
-        Title = Title.Trim(),
-        Url = Url.Trim(),
-        Username = Username.Trim(),
-        Password = Password,
-        TwoFactorEnabled = TwoFactorEnabled || BackupCodes.Trim().Length > 0,
-        TwoFactorMethod = TwoFactorEnabled && TwoFactorMethod == TwoFactorMethod.None ? TwoFactorMethod.AuthenticatorApp : TwoFactorMethod,
-        Notes = Notes.Trim(),
-    };
+        bool twoFactor = Type == ItemType.Login && (TwoFactorEnabled || BackupCodes.Trim().Length > 0);
+        return new Entry
+        {
+            Type = Type,
+            Title = Title.Trim(),
+            Url = Type == ItemType.Login ? Url.Trim() : "",
+            Username = Type == ItemType.Login ? Username.Trim() : "",
+            Password = Type is ItemType.Login or ItemType.WiFi ? Password : "",
+            TwoFactorEnabled = twoFactor,
+            TwoFactorMethod = !twoFactor ? TwoFactorMethod.None
+                : TwoFactorMethod == TwoFactorMethod.None ? TwoFactorMethod.AuthenticatorApp : TwoFactorMethod,
+            Card = Type == ItemType.Card ? Card : null,
+            Wifi = Type == ItemType.WiFi ? Wifi : null,
+            Fields = [.. Fields],
+            Tags = [.. Tags],
+            Reprompt = Reprompt,
+            Notes = Notes.Trim(),
+        };
+    }
+
+    /// <summary>A short note of what else comes along that the review screen doesn't show as boxes.</summary>
+    public string ExtrasSummary
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (Type == ItemType.Card) parts.Add("payment card" + (Card?.Number.Length >= 4 ? $" ending {Card.Number[^4..]}" : ""));
+            if (Type == ItemType.WiFi) parts.Add($"Wi-Fi network \"{Wifi?.NetworkName}\"");
+            if (Type == ItemType.SecureNote) parts.Add("secure note");
+            if (Fields.Any(f => f.Name == CsvImporter.TotpFieldName)) parts.Add("authenticator key (kept as a hidden field)");
+            int other = Fields.Count(f => f.Name != CsvImporter.TotpFieldName);
+            if (other > 0) parts.Add(other == 1 ? "1 custom field" : $"{other} custom fields");
+            if (Tags.Count > 0) parts.Add("tags: " + string.Join(", ", Tags));
+            if (Reprompt) parts.Add("asks for the master password");
+            return string.Join(" · ", parts);
+        }
+    }
 }
 
 /// <summary>

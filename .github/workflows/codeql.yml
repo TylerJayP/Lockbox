@@ -1,0 +1,33 @@
+# GitHub's code scanning: looks for security problems in the C# code on every push to main,
+# every pull request, and once a week (new checks get added over time).
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "23 4 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze C#
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: csharp
+          build-mode: none
+          queries: security-and-quality
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:csharp"

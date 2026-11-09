@@ -24,6 +24,8 @@ public partial class SettingsViewModel : ObservableObject
         PasswordHistoryLimit = s.PasswordHistoryLimit;
         _hideFromScreenCapture = owner.Main.Settings.HideFromScreenCapture;
         _checkForUpdates = owner.Main.Settings.CheckForUpdates;
+        _autoTypeEnabled = owner.Main.Settings.AutoTypeEnabled;
+        UpdateAutoTypeStatus();
         RefreshInfo();
     }
 
@@ -62,6 +64,27 @@ public partial class SettingsViewModel : ObservableObject
     // ── this computer ──
     [ObservableProperty] private bool _hideFromScreenCapture;
     [ObservableProperty] private string? _captureStatus;
+
+    // ───────────── auto-type ─────────────
+
+    [ObservableProperty] private bool _autoTypeEnabled;
+    [ObservableProperty] private string _autoTypeStatus = "";
+    public bool AutoTypeSupported => _owner.Platform.AutoType != null;
+    public string AutoTypeHotkey => VaultViewModel.AutoTypeHotkey;
+
+    partial void OnAutoTypeEnabledChanged(bool value)
+    {
+        _owner.Main.Settings.AutoTypeEnabled = value;
+        _owner.Main.Settings.Save();
+        _owner.RefreshAutoType();
+        UpdateAutoTypeStatus();
+    }
+
+    private void UpdateAutoTypeStatus() => AutoTypeStatus =
+        !AutoTypeSupported ? "Auto-type is only available on Windows."
+        : !AutoTypeEnabled ? ""
+        : _owner.AutoTypeHotkeyActive ? $"On. Press {VaultViewModel.AutoTypeHotkey} on a sign-in page while Lockbox is unlocked."
+        : $"{VaultViewModel.AutoTypeHotkey} is already used by another app. The Auto-type button on each login still works.";
 
     partial void OnHideFromScreenCaptureChanged(bool value)
     {
@@ -224,11 +247,7 @@ public partial class SettingsViewModel : ObservableObject
             });
             _owner.ReplaceKeyFileSecret(nextSecret);
             _owner.RecordSaved();
-            if (newKeyPath != null)
-            {
-                _owner.Main.Settings.LastKeyFilePath = newKeyPath;
-                _owner.Main.Settings.Save();
-            }
+            if (newKeyPath != null) _owner.Main.Settings.UpdateRememberedKeyFile(_owner.Vault.FilePath, newKeyPath);
 
             CurrentPassword = NewPassword = ConfirmNewPassword = "";
             NewKeyFile = false;

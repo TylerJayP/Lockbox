@@ -22,7 +22,7 @@
     <ScrollViewer>
         <StackPanel Width="640" HorizontalAlignment="Center" Margin="24,32" Spacing="18">
             <Grid ColumnDefinitions="Auto,*">
-                <Button Classes="icon" Command="{Binding BackCommand}" ToolTip.Tip="Back">
+                <Button AutomationProperties.Name="Back" Classes="icon" Command="{Binding BackCommand}" ToolTip.Tip="Back">
                     <PathIcon Data="{StaticResource IconBack}" />
                 </Button>
                 <StackPanel Grid.Column="1" Margin="8,0,0,0">
@@ -40,7 +40,7 @@
                         <TextBlock Classes="dim" TextWrapping="Wrap"
                                    Text="Any folder works, even a synced one like OneDrive or Google Drive. The file is encrypted, so it's useless to anyone without your password and key file." />
                         <Grid ColumnDefinitions="*,Auto">
-                            <TextBox Text="{Binding VaultPath}" PlaceholderText="e.g. Documents\MyVault.lbx" IsReadOnly="True" />
+                            <TextBox AutomationProperties.Name="Where to save the vault" Text="{Binding VaultPath}" PlaceholderText="e.g. Documents\MyVault.lbx" IsReadOnly="True" />
                             <Button Grid.Column="1" Margin="8,0,0,0" Content="Choose…" Command="{Binding BrowseVaultCommand}" />
                         </Grid>
                     </StackPanel>
@@ -55,12 +55,12 @@
                         <TextBlock Classes="h3" Text="Master password" />
                         <TextBlock Classes="dim" TextWrapping="Wrap"
                                    Text="The one password you'll remember. A passphrase of six random words is both strong and memorable. Lockbox can't reset it for you." />
-                        <TextBox Text="{Binding Password}" PasswordChar="•" RevealPassword="{Binding RevealPassword}"
+                        <TextBox AutomationProperties.Name="Master password" Text="{Binding Password}" PasswordChar="•" RevealPassword="{Binding RevealPassword}"
                                  Classes="revealPasswordButton mono" PlaceholderText="Master password" />
                         <ProgressBar Classes="strength" Value="{Binding StrengthValue}" Foreground="{Binding StrengthBrush}" />
                         <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap" Text="{Binding StrengthText}"
                                    IsVisible="{Binding StrengthText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                        <TextBox Text="{Binding ConfirmPassword}" PasswordChar="•" RevealPassword="{Binding RevealPassword}"
+                        <TextBox AutomationProperties.Name="Confirm master password" Text="{Binding ConfirmPassword}" PasswordChar="•" RevealPassword="{Binding RevealPassword}"
                                  Classes="revealPasswordButton mono" PlaceholderText="Type it again" />
                         <Button Command="{Binding GeneratePassphraseCommand}" HorizontalAlignment="Left">
                             <StackPanel Orientation="Horizontal" Spacing="8">
@@ -81,7 +81,7 @@
                         <TextBlock Classes="dim" TextWrapping="Wrap"
                                    Text="A small file that works like a physical key: you need it AND your password to unlock. Keep it somewhere other than the vault. A USB stick is ideal." />
                         <Grid ColumnDefinitions="*,Auto">
-                            <TextBox Text="{Binding KeyFilePath}" PlaceholderText="e.g. E:\MyVault.lbxkey" IsReadOnly="True" />
+                            <TextBox AutomationProperties.Name="Where to save the key file" Text="{Binding KeyFilePath}" PlaceholderText="e.g. E:\MyVault.lbxkey" IsReadOnly="True" />
                             <Button Grid.Column="1" Margin="8,0,0,0" Content="Choose…" Command="{Binding BrowseKeyFileCommand}" />
                         </Grid>
                         <Border Classes="notice" IsVisible="{Binding HasSameFolderWarning}">

@@ -21,17 +21,47 @@
 
             <Border Classes="card">
                 <StackPanel Spacing="16">
+                    <StackPanel IsVisible="{Binding HasRecent}">
+                        <TextBlock Classes="label" Text="Recent vaults" />
+                        <ItemsControl ItemsSource="{Binding Recent}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:RecentVaultItem">
+                                    <Button Classes="chip" Classes.on="{Binding IsCurrent}" Margin="0,0,6,6" ToolTip.Tip="{Binding Tip}"
+                                            AutomationProperties.Name="{Binding Name, StringFormat='Open recent vault {0}'}"
+                                            Command="{Binding $parent[ItemsControl].((vm:UnlockViewModel)DataContext).PickRecentCommand}"
+                                            CommandParameter="{Binding}">
+                                        <Button.ContextFlyout>
+                                            <MenuFlyout>
+                                                <MenuItem Header="Remove from this list"
+                                                          Command="{Binding $parent[ItemsControl].((vm:UnlockViewModel)DataContext).ForgetRecentCommand}"
+                                                          CommandParameter="{Binding}" />
+                                            </MenuFlyout>
+                                        </Button.ContextFlyout>
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <PathIcon Data="{StaticResource IconLock}" Width="12" Height="12" />
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                            <TextBlock Classes="dim" Text="{Binding Folder}" FontSize="12" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
                     <StackPanel>
                         <TextBlock Classes="label" Text="Vault file" />
                         <Grid ColumnDefinitions="*,Auto">
-                            <TextBox Text="{Binding VaultPath}" PlaceholderText="Choose your .lbx vault file" />
+                            <TextBox AutomationProperties.Name="Vault file" Text="{Binding VaultPath}" PlaceholderText="Choose your .lbx vault file" />
                             <Button Grid.Column="1" Margin="8,0,0,0" Content="Browse…" Command="{Binding BrowseVaultCommand}" />
                         </Grid>
                     </StackPanel>
 
                     <StackPanel>
                         <TextBlock Classes="label" Text="Master password" />
-                        <TextBox Name="PasswordBox" Text="{Binding Password}" PasswordChar="•" Classes="revealPasswordButton">
+                        <TextBox AutomationProperties.Name="Master password" Name="PasswordBox" Text="{Binding Password}" PasswordChar="•" Classes="revealPasswordButton">
                             <TextBox.KeyBindings>
                                 <KeyBinding Gesture="Enter" Command="{Binding UnlockCommand}" />
                             </TextBox.KeyBindings>
@@ -41,7 +71,7 @@
                     <StackPanel IsVisible="{Binding !TypeKeyManually}">
                         <TextBlock Classes="label" Text="Key file" />
                         <Grid ColumnDefinitions="*,Auto">
-                            <TextBox Text="{Binding KeyFilePath}" PlaceholderText="Choose your .lbxkey file (e.g. on your USB stick)" />
+                            <TextBox AutomationProperties.Name="Key file" Text="{Binding KeyFilePath}" PlaceholderText="Choose your .lbxkey file (e.g. on your USB stick)" />
                             <Button Grid.Column="1" Margin="8,0,0,0" Content="Browse…" Command="{Binding BrowseKeyFileCommand}" />
                         </Grid>
                         <CheckBox Margin="0,8,0,0" IsChecked="{Binding RememberKeyFileLocation}"
@@ -50,9 +80,9 @@
 
                     <StackPanel IsVisible="{Binding TypeKeyManually}" Spacing="8">
                         <TextBlock Classes="label" Text="Key from your emergency sheet" Margin="0" />
-                        <TextBox Classes="mono multi" Height="80" Text="{Binding ManualKey}"
+                        <TextBox AutomationProperties.Name="Key file text" Classes="mono multi" Height="80" Text="{Binding ManualKey}"
                                  PlaceholderText="Type the 16 groups of 4 characters (spaces don't matter)" />
-                        <TextBox Classes="mono" Width="220" HorizontalAlignment="Left" Text="{Binding ManualCheck}"
+                        <TextBox AutomationProperties.Name="Key file check code" Classes="mono" Width="220" HorizontalAlignment="Left" Text="{Binding ManualCheck}"
                                  PlaceholderText="CHECK (8 characters)" />
                     </StackPanel>
 

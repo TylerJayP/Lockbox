@@ -11,8 +11,8 @@
 
 <p align="center">
   <a href="https://github.com/TylerJayP/Lockbox/releases/latest"><img src="https://img.shields.io/github/v/release/TylerJayP/Lockbox?label=download&style=for-the-badge&color=4F8CFF" alt="Download the latest release"></a>
-  <a href="https://github.com/TylerJayP/Lockbox/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/TylerJayP/Lockbox/ci.yml?branch=main&label=tests&style=for-the-badge" alt="Tests"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=for-the-badge" alt="Windows 10 and 11">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2EA043?style=for-the-badge" alt="MIT license"></a>
 </p>
 
 <p align="center">
@@ -52,8 +52,8 @@ It's for anyone who's been keeping passwords in a text file, a notes app or thei
   </tr>
   <tr>
     <td width="50%" valign="top">
-      <img src="docs/images/import.png" alt="Reviewing logins imported from a text file">
-      <p><b>Bring your old passwords.</b> Point it at the text file you've been using. It reads most layouts, lets you review every login, then shreds the original.</p>
+      <img src="docs/images/import.png" alt="Reviewing logins imported from a Chrome export">
+      <p><b>Bring your old passwords.</b> Import from Chrome, Edge, Firefox, Safari, another password manager or the text file you've been using. Review every login, then let Lockbox shred the original.</p>
     </td>
     <td width="50%" valign="top">
       <img src="docs/images/unlock.png" alt="The unlock screen">
@@ -78,10 +78,14 @@ It's for anyone who's been keeping passwords in a text file, a notes app or thei
 - Invisible in screenshots and screen sharing (Discord, OBS, Teams)
 - Warns you if an older copy of your vault ever replaces a newer one
 - Strong password and passphrase generator with a real strength meter
+- Only one copy runs at a time, so two windows can never save over each other
 
 **Stays out of your way**
 
+- **Auto-type:** press Ctrl+Alt+A on a sign-in page and Lockbox types your username and password, no clipboard involved (Windows, turn it on in Settings)
+- Imports from Chrome, Edge, Brave, Firefox, Safari, Bitwarden, 1Password, LastPass, KeePassXC, Dashlane and Proton Pass
 - Fast search, filters and keyboard shortcuts (Ctrl+F, Ctrl+C, Ctrl+B…)
+- More than one vault? Switch from the recent vaults list on the unlock screen
 - Updates itself, and only installs updates signed by the developer
 - Export anytime: an encrypted backup, or a file you can import into Bitwarden
 
@@ -89,7 +93,7 @@ It's for anyone who's been keeping passwords in a text file, a notes app or thei
 
 1. **Download** `Lockbox-win-Setup.exe` from the [latest release](https://github.com/TylerJayP/Lockbox/releases/latest) and run it. Windows may say *"Windows protected your PC"* because the installer isn't code-signed. Click **More info → Run anyway**. This only happens once; updates install themselves after that.
 2. **Create a vault.** Let Lockbox generate a six-word master passphrase, save your key file to a USB stick, and print the emergency sheet.
-3. **Add your passwords**, or import them from your old text file with **Import .txt**.
+3. **Add your passwords**, or bring them in with **Import**: from your browser, another password manager or your old text file.
 
 New to Lockbox? The [user guide](docs/GUIDE.md) walks through everything.
 
@@ -124,6 +128,12 @@ Yes. The file is encrypted, so the cloud only ever sees scrambled data. Keep the
 </details>
 
 <details>
+<summary><b>How do I move my passwords out of Chrome or Edge?</b></summary>
+<br>
+In Chrome or Edge, open Settings → Passwords → Export passwords. In Firefox, open <code>about:logins</code> → ⋯ → Export. Then in Lockbox click <b>Import</b> and open the CSV file. Lockbox shows every login before saving anything, then offers to shred the CSV, since it holds your passwords in plain text. The <a href="docs/GUIDE.md#moving-from-a-browser-or-another-password-manager">user guide</a> has the steps for other apps.
+</details>
+
+<details>
 <summary><b>Can I move to another password manager later?</b></summary>
 <br>
 Yes. Settings → Export creates a file in Bitwarden's format, which Bitwarden, KeePassXC and 1Password can import. You're never locked in.
@@ -141,9 +151,13 @@ The installer is Windows-only for now. Lockbox is built with Avalonia, so it run
 No. It uses standard, widely trusted building blocks, but no outside security firm has reviewed this code. For your most critical accounts, weigh that up. <a href="docs/SECURITY.md#honest-limitations">SECURITY.md</a> lists the known limitations.
 </details>
 
+## License
+
+Lockbox is free and open source under the [MIT license](LICENSE). It's built on great open-source work, credited in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
 ## More
 
-- [User guide](docs/GUIDE.md): importing, exporting, backup codes, shortcuts and backups
+- [User guide](docs/GUIDE.md): importing, auto-type, exporting, backup codes, shortcuts and backups
 - [Security](docs/SECURITY.md): how encryption, updates and the file format work
 - [Developing](docs/DEVELOPING.md): building from source, tests and project layout
 - [Releasing](docs/RELEASING.md): publishing a signed update

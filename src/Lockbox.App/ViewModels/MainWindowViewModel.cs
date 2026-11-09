@@ -51,7 +51,12 @@ public partial class MainWindowViewModel : ObservableObject
     private void DismissUpdate() => UpdateBannerVisible = false;
 
     [RelayCommand]
-    private Task ShowUpdateNotes() => AlertAsync($"What's new in Lockbox {UpdateVersion}", UpdateNotes);
+    private Task ShowUpdateNotes() =>
+        ShowAsync(new DialogViewModel($"What's new in Lockbox {UpdateVersion}", UpdateNotes, [new DialogButton("ok", "Close", IsPrimary: true)])
+        {
+            IsMarkdown = true,
+            Width = 580,
+        });
 
     [RelayCommand]
     private async Task InstallUpdate()
@@ -177,6 +182,11 @@ public partial class DialogViewModel : ObservableObject
     public string Message { get; }
     public IReadOnlyList<DialogButton> Buttons { get; }
     public Task<string?> Result => _tcs.Task;
+
+    /// <summary>Render <see cref="Message"/> as Markdown (release notes) instead of plain text.</summary>
+    public bool IsMarkdown { get; init; }
+    public bool IsPlainText => !IsMarkdown;
+    public double Width { get; init; } = 500;
 
     public string? InputLabel { get; init; }
     public string? ConfirmLabel { get; init; }

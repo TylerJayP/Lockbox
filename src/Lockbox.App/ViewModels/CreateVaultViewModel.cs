@@ -152,15 +152,13 @@ public partial class CreateVaultViewModel : ObservableObject
                 return Vault.Create(vaultPath, password, _keySecret, kdf);
             });
 
-            _main.Settings.LastVaultPath = vaultPath;
-            _main.Settings.LastKeyFilePath = keyPath;
-            _main.Settings.Save();
+            _main.Settings.RememberVault(vaultPath, keyPath, _main.Settings.RememberKeyFileLocation);
             _main.Settings.RecordRevision(vault.VaultId, vault.Revision, vault.LastSavedUtc);
 
             var secretCopy = _keySecret.ToArray();
             CryptographicOperations.ZeroMemory(_keySecret);
             Password = ConfirmPassword = "";
-            var vm = new VaultViewModel(_main, vault, secretCopy) { Status = "Vault created. Add a login or import your old text file." };
+            var vm = new VaultViewModel(_main, vault, secretCopy) { Status = "Vault created. Add a login, or import your passwords from your browser or a text file." };
             _main.OnUnlocked(vm);
         }
         catch (Exception ex)

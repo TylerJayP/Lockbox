@@ -27,7 +27,7 @@ internal static class ReadmeShots
         {
             Pump();
             var path = Path.Combine(outDir, name + ".png");
-            w.CaptureRenderedFrame()?.Save(path);
+            w.CaptureRenderedFrame()?.Save(path, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
             Console.WriteLine("saved " + path);
         }
 
@@ -70,8 +70,14 @@ internal static class ReadmeShots
         var vm = (MainWindowViewModel)w.DataContext!;
         w.Show();
 
-        // Unlock screen
-        vm.Navigate(new UnlockViewModel(vm) { VaultPath = @"C:\Users\alex\Documents\Personal.lbx", KeyFilePath = @"E:\Personal.lbxkey" });
+        // Unlock screen, with a second vault in the recent list
+        vm.Settings.RecentVaults =
+        [
+            new(@"C:\Users\alex\OneDrive\Documents\Personal.lbx", @"E:\Personal.lbxkey"),
+            new(@"C:\Users\alex\OneDrive\Family\Family.lbx", null),
+        ];
+        vm.Settings.RememberKeyFileLocation = true;
+        vm.Navigate(new UnlockViewModel(vm) { VaultPath = @"C:\Users\alex\OneDrive\Documents\Personal.lbx", KeyFilePath = @"E:\Personal.lbxkey" });
         Shot(w, "unlock");
 
         var vvm = new VaultViewModel(vm, v, key) { Status = "Saved at 9:41 PM." };
@@ -97,7 +103,11 @@ internal static class ReadmeShots
 
         var imp = new ImportViewModel(vvm)
         {
-            SourceText = "===== GAMES =====\nRoblox | arivera_gg | R0blox!Pass\nXbox, alex.rivera@outlook.com, Xb0x-Pass\n\nAmazon\nemail: alex.rivera@example.com\npassword: Amaz0n-2024!\n2FA: authenticator app\nBackup codes:\n1234 5678\n2345 6789\n",
+            SourceText = "name,url,username,password,note\n" +
+                         "roblox.com,https://www.roblox.com/login,arivera_gg,R0blox!Pass-88,\n" +
+                         "amazon.com,https://www.amazon.com/ap/signin,alex.rivera@example.com,Amaz0n-2024!,\n" +
+                         "netflix.com,https://www.netflix.com/login,alex.rivera@example.com,sunshine1,\n" +
+                         ",android://aGFzaA==@com.duolingo/,alex.rivera@example.com,Duo-Owl-Streak-365,\n",
         };
         vm.Navigate(imp);
         imp.FindLoginsCommand.Execute(null);

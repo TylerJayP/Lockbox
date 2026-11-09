@@ -32,6 +32,7 @@
             <SolidColorBrush x:Key="OkBrush" Color="#22C55E" />
 
             <!-- Material Design Icons (Apache 2.0) -->
+            <StreamGeometry x:Key="IconKeyboard">M19,10H17V8H19M19,13H17V11H19M16,10H14V8H16M16,13H14V11H16M16,17H8V15H16M7,10H5V8H7M7,13H5V11H7M8,11H10V13H8M8,8H10V10H8M11,11H13V13H11M11,8H13V10H11M20,5H4C2.89,5 2,5.89 2,7V17A2,2 0 0,0 4,19H20A2,2 0 0,0 22,17V7C22,5.89 21.1,5 20,5Z</StreamGeometry>
             <StreamGeometry x:Key="IconLock">M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z</StreamGeometry>
             <StreamGeometry x:Key="IconCopy">M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z</StreamGeometry>
             <StreamGeometry x:Key="IconEye">M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z</StreamGeometry>
@@ -160,6 +161,17 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+        </Style>
+        <Style Selector="Button.chip">
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Background" Value="{StaticResource Surface2}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="Button.chip.on">
+            <Setter Property="Background" Value="{StaticResource AccentSoft}" />
+            <Setter Property="BorderBrush" Value="#2D4E8A" />
         </Style>
         <Style Selector="PathIcon">
             <Setter Property="Width" Value="16" />

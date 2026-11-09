@@ -4,10 +4,7 @@ Releases are built and signed on your own computer, so the signing key never goe
 
 ## One-time setup
 
-1. **Install Velopack's packaging tool:**
-   ```
-   dotnet tool install -g vpk
-   ```
+1. **Velopack's packaging tool** (`vpk`) comes with the repo, pinned to the right version in `.config/dotnet-tools.json`. The release tool installs it for you. (If you installed it globally before, you can remove that copy with `dotnet tool uninstall -g vpk`.)
 2. **Create your signing key.** Choose a strong passphrase; you'll type it for every release.
    ```
    dotnet run --project tools/Lockbox.Release -- keygen
@@ -23,23 +20,36 @@ Releases are built and signed on your own computer, so the signing key never goe
 
 ## Each release
 
-```
-dotnet run --project tools/Lockbox.Release -- release 0.5.1 --notes notes.md
-```
+1. **Write the release notes** in `release-notes/<version>.md`, e.g. `release-notes/0.6.1.md`. A short list of `-` bullets in plain words reads best. It shows in two places: *What's new* in the app's update banner, and the release page on GitHub (with a short "how to install" footer added).
+2. **Commit and push** everything, including the notes.
+3. **Release:**
+   ```
+   dotnet run --project tools/Lockbox.Release -- release 0.6.1
+   ```
 
-It runs the tests, then:
+Before building anything, the tool checks:
+
+- **Your work is committed and pushed.** The release is tagged at your exact commit, so the code on GitHub matches what people install.
+- **The version is new and higher** than every existing release. Lockbox only offers newer versions.
+- **The Velopack versions match:** the packager and the library inside the app.
+
+Then it runs all the tests and:
 
 - builds the Windows app
 - packages it with Velopack: installer, full package, and a small delta from the previous release
-- signs it
-- uploads it to GitHub as a draft, attaches the signature, and publishes
+- signs it, and checks the signature the same way the app will
+- uploads it to GitHub as a draft, attaches the signature and your notes, and publishes
 
-Installed copies offer the update the next time they start.
+Installed copies offer the update the next time they start. Afterwards, `git fetch --tags` brings the new tag down to your computer.
 
-- **Bump the version every time** (0.5.1 → 0.5.2). Lockbox only offers newer versions.
-- `--notes` is an optional Markdown file. Users see it under *What's new* in the update banner.
+Options:
+
+- `--notes <file>` uses a different notes file.
 - `--dry-run` builds and signs everything into `Releases/` without publishing.
 - `--skip-tests` skips the test run (not recommended).
+- `--allow-dirty` skips the committed-and-pushed check, for trying the tool out only.
+
+If a release fails halfway (say, the internet drops during the upload), just run the same command again. Unfinished drafts are never visible to anyone, and the tool clears out its own leftover draft first.
 
 ## Testing an update end to end
 

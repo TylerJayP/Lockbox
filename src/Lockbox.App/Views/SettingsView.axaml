@@ -6,7 +6,7 @@
     <ScrollViewer>
         <StackPanel Width="680" HorizontalAlignment="Center" Margin="24,24,24,40" Spacing="16">
             <Grid ColumnDefinitions="Auto,*">
-                <Button Classes="icon" Command="{Binding BackCommand}" ToolTip.Tip="Back to vault">
+                <Button AutomationProperties.Name="Back to vault" Classes="icon" Command="{Binding BackCommand}" ToolTip.Tip="Back to vault">
                     <PathIcon Data="{StaticResource IconBack}" />
                 </Button>
                 <TextBlock Grid.Column="1" Classes="h1" Text="Settings" Margin="8,0,0,0" VerticalAlignment="Center" />
@@ -83,6 +83,27 @@
                 </StackPanel>
             </Border>
 
+            <!-- Auto-type -->
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="h2" Text="Auto-type" />
+                    <CheckBox IsChecked="{Binding AutoTypeEnabled}" IsEnabled="{Binding AutoTypeSupported}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding AutoTypeHotkey, StringFormat='Type logins for me with {0}'}" />
+                            <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap"
+                                       Text="On a sign-in page, press the shortcut and Lockbox types the matching username and password, then Enter. Nothing goes through the clipboard. It only works while Lockbox is unlocked, and it stops if you switch windows. Each login also gets an Auto-type button." />
+                        </StackPanel>
+                    </CheckBox>
+                    <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap" Text="{Binding AutoTypeStatus}"
+                               IsVisible="{Binding AutoTypeStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <StackPanel Spacing="4">
+                        <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap"
+                                   Text="Sign-in that asks for the username and password on separate pages? Add a custom field named Auto-type to that login with what to type, for example:" />
+                        <SelectableTextBlock Classes="mono" FontSize="12" Text="{}{USERNAME}{ENTER}{DELAY 1500}{PASSWORD}{ENTER}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
             <!-- Change master password -->
             <Border Classes="card">
                 <StackPanel Spacing="12">
@@ -91,14 +112,14 @@
                                Text="Re-encrypts the vault under a new password. You can also swap in a brand-new key file, e.g. if the old one may have been copied." />
                     <StackPanel>
                         <TextBlock Classes="label" Text="Current master password" />
-                        <TextBox Text="{Binding CurrentPassword}" PasswordChar="•" Classes="revealPasswordButton" />
+                        <TextBox AutomationProperties.Name="Current master password" Text="{Binding CurrentPassword}" PasswordChar="•" Classes="revealPasswordButton" />
                     </StackPanel>
                     <StackPanel Spacing="6">
                         <TextBlock Classes="label" Text="New master password" Margin="0" />
-                        <TextBox Classes="mono revealPasswordButton" Text="{Binding NewPassword}" PasswordChar="•" RevealPassword="{Binding RevealNew}" />
+                        <TextBox AutomationProperties.Name="New master password" Classes="mono revealPasswordButton" Text="{Binding NewPassword}" PasswordChar="•" RevealPassword="{Binding RevealNew}" />
                         <ProgressBar Classes="strength" Value="{Binding StrengthValue}" Foreground="{Binding StrengthBrush}" />
                         <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap" Text="{Binding StrengthText}" />
-                        <TextBox Classes="mono revealPasswordButton" Text="{Binding ConfirmNewPassword}" PasswordChar="•" RevealPassword="{Binding RevealNew}"
+                        <TextBox AutomationProperties.Name="Confirm new master password" Classes="mono revealPasswordButton" Text="{Binding ConfirmNewPassword}" PasswordChar="•" RevealPassword="{Binding RevealNew}"
                                  PlaceholderText="Type it again" />
                     </StackPanel>
                     <Button Command="{Binding GeneratePassphraseCommand}" HorizontalAlignment="Left">

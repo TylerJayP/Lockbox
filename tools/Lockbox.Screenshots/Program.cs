@@ -10,8 +10,8 @@ using Lockbox.Core;
 using Lockbox.Core.Crypto;
 using Lockbox.Core.Model;
 
-string outDir = args.Length > 0 && args[0] is not ("smoke" or "readme") ? args[0] : "shots";
-if (args is not (["smoke", ..] or ["readme", ..])) Directory.CreateDirectory(outDir);
+string outDir = args.Length > 0 && args[0] is not "readme" ? args[0] : "shots";
+if (args is not ["readme", ..]) Directory.CreateDirectory(outDir);
 Environment.SetEnvironmentVariable("LOCKBOX_SETTINGS_DIR", Path.Combine(Path.GetTempPath(), "lockbox-shots-config"));
 
 AppBuilder.Configure<App>()
@@ -23,12 +23,6 @@ AppBuilder.Configure<App>()
 if (args is ["readme", ..])
 {
     ReadmeShots.Run(args.Length > 1 ? args[1] : Path.Combine("docs", "images"));
-    return;
-}
-
-if (args is ["smoke", ..])
-{
-    Environment.ExitCode = Smoke.RunAll() == 0 ? 0 : 1;
     return;
 }
 
@@ -50,7 +44,7 @@ void Shot(Window w, string name)
     var frame = w.CaptureRenderedFrame();
     if (frame == null) { Console.WriteLine($"no frame for {name}"); return; }
     var path = Path.Combine(outDir, name + ".png");
-    frame.Save(path);
+    frame.Save(path, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
     Console.WriteLine("saved " + path);
 }
 
@@ -133,6 +127,32 @@ MainWindow NewWindow(out MainWindowViewModel vm)
     vm.UpdateProgress = 45;
     Shot(w, "16b-update-progress");
     vm.UpdateBusy = false;
+
+    // What's new: the real 0.6.0 notes, then every kind of formatting
+    vm.UpdateVersion = "0.6.0";
+    vm.UpdateNotes = File.Exists(Path.Combine("release-notes", "0.6.0.md")) ? File.ReadAllText(Path.Combine("release-notes", "0.6.0.md")) : "- (notes file not found)";
+    vm.ShowUpdateNotesCommand.Execute(null);
+    Shot(w, "16c-whats-new");
+    vm.Dialog!.PressCommand.Execute(vm.Dialog.Buttons[0]);
+    vm.UpdateNotes = """
+        ## Highlights
+        Lockbox now imports **browser exports** and can *type logins for you*.
+
+        1. Export a CSV from your browser
+        2. Click **Import** and open it
+           - Lockbox spots duplicates
+           - and offers to shred the file
+        ---
+        > Tip: two-page sign-ins can use `{USERNAME}{ENTER}{DELAY 1500}{PASSWORD}{ENTER}`
+
+        ```
+        dotnet run --project tools/Lockbox.Release -- release 0.6.0
+        ```
+        See [the guide](https://example.com) for snake_case_names and 5 * 3 maths.
+        """;
+    vm.ShowUpdateNotesCommand.Execute(null);
+    Shot(w, "16d-whats-new-formatting");
+    vm.Dialog!.PressCommand.Execute(vm.Dialog.Buttons[0]);
     vm.UpdateBannerVisible = false;
 
     // 4. Generator open on a weak entry
@@ -203,7 +223,25 @@ MainWindow NewWindow(out MainWindowViewModel vm)
     imp.FindLoginsCommand.Execute(null);
     Shot(w, "08-import-review");
 
-    // 9. Settings
+    // 8b. Browser CSV import, including a repeated row and an Android app
+    var csvImp = new ImportViewModel(vvm)
+    {
+        SourceText = "name,url,username,password,note\n" +
+                     "Steam,https://store.steampowered.com/login,tylerjp,Mazda$peed3-2010!,\n" +
+                     "github.com,https://github.com/login,TylerJayP,Vq7#pL2!xRz9@mK4,\n" +
+                     "github.com,https://github.com/session,TylerJayP,Vq7#pL2!xRz9@mK4,\n" +
+                     ",android://aGFzaA==@com.spotify.music/,tyler@example.com,Sp0tify#1,from my phone\n",
+    };
+    vm.Navigate(csvImp);
+    csvImp.FindLoginsCommand.Execute(null);
+    Shot(w, "08b-import-csv");
+    csvImp.SourceText = "folder,favorite,type,name,notes,fields,reprompt,login_uri,login_username,login_password,login_totp\n" +
+                        "Banking,,note,Chase Freedom,,\"Cardholder: Tyler Perkins\nCard number: 4111111111111111\nExpiry: 08/29\nSecurity code: 123\",1,,,,\n" +
+                        "Gaming,1,login,Epic Games,,\"Security answer: Fluffy\",0,https://epicgames.com,tyler@example.com,Ep1c!,JBSWY3DPEHPK3PXP\n";
+    csvImp.FindLoginsCommand.Execute(null);
+    Shot(w, "08c-import-bitwarden");
+
+    // 9. Settings (auto-type is Windows-only, so here it shows as unavailable)
     var st = new SettingsViewModel(vvm);
     vm.Navigate(st);
     Shot(w, "09-settings");
@@ -216,12 +254,32 @@ MainWindow NewWindow(out MainWindowViewModel vm)
     w.Close();
 }
 
+// 9c. Auto-type button and Settings, as Windows shows them (pretend keyboard host)
+{
+    var w = new MainWindow { Width = 1140, Height = 760 };
+    var vm = new MainWindowViewModel(new ShotPlatform(w));
+    w.DataContext = vm;
+    w.Show();
+    vm.Settings.AutoTypeEnabled = true;
+    var (v, key) = SampleVault("autotype");
+    var vvm = new VaultViewModel(vm, v, key) { Status = "Typed GitHub into \"Sign in to GitHub · GitHub\"." };
+    vm.OnUnlocked(vvm);
+    vvm.Selected = vvm.Items.First(i => i.Title == "GitHub");
+    Shot(w, "17-autotype-button");
+    vm.Navigate(new SettingsViewModel(vvm));
+    w.Height = 2400;
+    Shot(w, "17b-autotype-settings");
+    vm.Settings.AutoTypeEnabled = false;
+    vvm.Dispose();
+    w.Close();
+}
+
 // 10. Empty vault
 {
     var w = NewWindow(out var vm);
     var key = KeyFile.Generate();
     var v = Vault.Create(Path.Combine(tmp, "empty.lbx"), "orbit-velvet-cactus-mango-ripple-anchor", key, fast);
-    var vvm = new VaultViewModel(vm, v, key) { Status = "Vault created. Add a login or import your old text file." };
+    var vvm = new VaultViewModel(vm, v, key) { Status = "Vault created. Add a login, or import your passwords from your browser or a text file." };
     vm.OnUnlocked(vvm);
     Shot(w, "10-empty");
     vvm.Dispose();
@@ -229,3 +287,28 @@ MainWindow NewWindow(out MainWindowViewModel vm)
 }
 
 Directory.Delete(tmp, true);
+
+/// <summary>The real window's pickers and clipboard, plus a stand-in auto-type host so Windows-only UI can be rendered here.</summary>
+internal sealed class ShotPlatform(MainWindow window) : Lockbox.App.Services.IPlatform
+{
+    public Task<string?> PickOpenFileAsync(string title, string filterName, params string[] patterns) => Task.FromResult<string?>(null);
+    public Task<string?> PickSaveFileAsync(string title, string suggestedName, string extension, string filterName) => Task.FromResult<string?>(null);
+    public Lockbox.App.Services.SecureClipboard Clipboard => window.Clipboard;
+    public void OpenUrl(string url) { }
+    public void OpenFolder(string path) { }
+    public bool SetCaptureProtection(bool enabled) => false;
+    public Lockbox.App.Services.IAutoTypeHost? AutoType { get; } = new NoKeyboard();
+
+    private sealed class NoKeyboard : Lockbox.App.Services.IAutoTypeHost
+    {
+        public bool RegisterHotkey(Action onPressed) => true;
+        public void UnregisterHotkey() { }
+        public nint ForegroundWindow() => 0;
+        public nint PreviousWindow => 0;
+        public string WindowTitle(nint window) => "";
+        public bool IsLockboxWindow(nint window) => false;
+        public void BringLockboxToFront() { }
+        public Task<Lockbox.App.Services.AutoTypeResult> TypeAsync(nint window, IReadOnlyList<Lockbox.Core.Tools.AutoTypeStep> steps) =>
+            Task.FromResult(Lockbox.App.Services.AutoTypeResult.Typed);
+    }
+}
