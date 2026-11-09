@@ -10,7 +10,7 @@
                 <TextBlock Classes="h1" Text="Lockbox" VerticalAlignment="Center" FontSize="30" />
             </StackPanel>
             <TextBlock Classes="dim" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
-                       Text="Your passwords, encrypted on your own computer. Nothing is ever sent anywhere." />
+                       Text="Your passwords, encrypted on your own computer. Your data never leaves it." />
 
             <Border Classes="notice" IsVisible="{Binding HasLockedReason}">
                 <StackPanel Orientation="Horizontal" Spacing="10">

@@ -1,144 +1,158 @@
-# Lockbox
+<p align="center">
+  <img src="docs/images/logo.png" width="96" alt="Lockbox logo">
+</p>
 
-A local, offline password manager for Windows, macOS and Linux. Your logins live in one encrypted file on your own computer. There's no server and no account, and your data is never sent anywhere. The only network request is an optional check for app updates on GitHub.
+<h1 align="center">Lockbox</h1>
 
-- **Two factors to unlock:** your master password plus a key file (keep it on a USB stick). If the key file is lost, you can type the key from a printed emergency sheet instead.
-- **Four item types:** **logins** (username, password, website, and a **"2FA is on" checkmark** with the method), **secure notes**, **payment cards** (number, expiry, security code, PIN, with brand detection and a typo check), and **Wi‑Fi networks** (with a **QR code** guests can scan to join).
-- **Custom fields** on any item (account numbers, security questions…). Mark one **Hide** to mask it like a password.
-- **Encrypted attachments.** Keep recovery kits, scans or key files inside the vault (up to 20 MB each). Lockbox offers to shred the original after attaching it.
-- **Protected items.** Tick "Ask for my master password" on email, banking or cards. Someone at your unlocked computer can't view, copy or delete them without the password.
-- **Security check-up** (shield icon). Reused, weak, missing and 2+‑year‑old passwords, plus logins without 2FA, ordered by what to fix first.
-- **Hidden from screen sharing.** Discord, OBS, Teams and screenshots see a blank window (Windows 10 2004+; toggle in Settings).
-- **Rollback warning.** If an older copy of your vault replaces a newer one (a sync app restoring an old file, or someone swapping it), Lockbox tells you before opening it.
-- **Automatic, signed updates.** Installed copies check GitHub on start and offer "Update and restart". An update is installed only if it's signed with the developer's offline key, so a hijacked GitHub account can't push a malicious version. Updates are small deltas (a couple of MB).
-- **Keyboard shortcuts:** Ctrl+F search, Enter/Ctrl+C copy password (in the list), Ctrl+B copy username, Ctrl+U open site, Ctrl+N new login, Ctrl+S save, Ctrl+L lock. The full list is in Settings.
-- **Backup codes get a second lock.** They're sealed with a separate recovery passphrase, so someone who learns your master password still can't read them. They lock again after 3 minutes.
-- **Import your old .txt file.** It understands most hand-written layouts, you review every login before saving, and it can then overwrite and delete the original.
-- **Export** (Settings → Export): an **encrypted copy** of the vault for a USB stick, or a **readable CSV in Bitwarden's format** for moving to Bitwarden/KeePassXC/1Password. The CSV asks for your master password first and leaves backup codes out unless you include them.
-- **Password history.** When you save a new password, the old one is kept with the date it was replaced (the last 10 per login, adjustable in Settings, 0 = off). You can copy one or put it back with **Use again**, which helps when a site's "change password" page fails halfway. You can also clear one login's history. Old passwords are encrypted with everything else, and they aren't included in CSV exports.
-- Password and passphrase **generator**, **strength meter** (zxcvbn), and **weak/reused password** warnings.
-- **Auto-lock** after idle time, on Windows lock (Win+L), on sleep, and optionally on minimize. **Copied passwords are wiped** from the clipboard after 20 s and kept out of Windows clipboard history and cloud sync.
+<p align="center">
+  <b>Your passwords, locked on your own computer.</b><br>
+  A password manager with no cloud, no account and no subscription.
+</p>
 
-## Install
+<p align="center">
+  <a href="https://github.com/TylerJayP/Lockbox/releases/latest"><img src="https://img.shields.io/github/v/release/TylerJayP/Lockbox?label=download&style=for-the-badge&color=4F8CFF" alt="Download the latest release"></a>
+  <a href="https://github.com/TylerJayP/Lockbox/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/TylerJayP/Lockbox/ci.yml?branch=main&label=tests&style=for-the-badge" alt="Tests"></a>
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=for-the-badge" alt="Windows 10 and 11">
+</p>
 
-**Windows:** download **`Lockbox-win-Setup.exe`** from the [latest release](https://github.com/TylerJayP/Lockbox/releases/latest) and run it. Lockbox installs for your user only (no admin), adds Start-menu and desktop shortcuts, and **updates itself** from then on.
+<p align="center">
+  <img src="docs/images/vault.png" alt="Lockbox showing a GitHub login with its password history" width="920">
+</p>
 
-Windows SmartScreen will say "Windows protected your PC" the first time, because the installer isn't code-signed. Click *More info → Run anyway*. Updates installed by Lockbox itself don't trigger it again.
+## Why Lockbox?
 
-Your vault and key file live wherever you saved them. Installing, updating or uninstalling Lockbox never touches them.
+Most password managers keep your vault on their servers. Lockbox keeps it in **one encrypted file that you own**, on your computer or in your own OneDrive or Google Drive folder.
 
-**From source** (needs the .NET 10 SDK):
+Opening it takes **two things**: your master password and a small **key file** that works like a physical key, ideally kept on a USB stick. Someone who steals the vault file gets nothing without both. Your passwords are never sent anywhere.
 
-```
-dotnet run --project src/Lockbox.App
-```
+It's for anyone who's been keeping passwords in a text file, a notes app or their head, and wants something safer that they fully control.
 
-**Build a single-file exe without the installer** (it won't update itself):
+## A closer look
 
-```
-dotnet publish src/Lockbox.App -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o publish/win-x64
-```
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/card.png" alt="A payment card in Lockbox">
+      <p><b>More than passwords.</b> Keep logins, payment cards, Wi‑Fi networks and secure notes, plus custom fields and encrypted file attachments on any item.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/wifi.png" alt="A Wi-Fi network with a QR code">
+      <p><b>Share Wi‑Fi in one tap.</b> Show a QR code and guests join by pointing their phone camera at it. No more reading passwords out loud.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/checkup.png" alt="The security check-up page">
+      <p><b>Security check-up.</b> Finds reused, weak and old passwords and logins without two-factor, and lists them in the order to fix them.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/protected.png" alt="A protected item asking for the master password">
+      <p><b>Extra-protected items.</b> Mark your email, bank or cards so they need your master password again, even while Lockbox is open.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/import.png" alt="Reviewing logins imported from a text file">
+      <p><b>Bring your old passwords.</b> Point it at the text file you've been using. It reads most layouts, lets you review every login, then shreds the original.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/unlock.png" alt="The unlock screen">
+      <p><b>Two keys to get in.</b> Master password plus key file. Lost the key file? Type it in from the emergency sheet you printed.</p>
+    </td>
+  </tr>
+</table>
 
-Use `-r osx-arm64` (Apple Silicon Mac), `-r osx-x64` or `-r linux-x64` for other systems. Mac builds aren't signed, so friends will need to right-click → Open the first time.
+## Everything it does
 
-**Tests:** `dotnet test` (98 unit tests). The `tools/Lockbox.Screenshots` project renders every screen headlessly (`dotnet run --project tools/Lockbox.Screenshots -- shots`) and drives the real view-models end to end (`… -- smoke`).
+**Keeps your stuff**
 
-## Getting started
+- Logins with a "2FA is on" checkmark, secure notes, payment cards and Wi‑Fi networks
+- Custom fields (account numbers, security questions) and encrypted attachments (recovery kits, scans)
+- Backup codes behind a second, separate passphrase
+- Password history, so you can recover the old password if a site's change didn't go through
 
-1. **Create a vault.** Pick where the `.lbx` file lives (a OneDrive/Google Drive folder is fine, since it's encrypted). Generate a six-word passphrase. Save the key file somewhere else, ideally a USB stick. Save the emergency sheet, **print it**, then delete the file.
-2. **Import** your old text file (*Import .txt*). Fix anything with a yellow note, untick anything you don't want, then import. If any logins have backup codes, you'll set your recovery passphrase here.
-3. **Delete the original text file.** Lockbox offers to overwrite and delete it. If your Desktop syncs to OneDrive, delete it there too and empty OneDrive's recycle bin. Then change the passwords for your most important accounts (email first), since they sat in plain text.
+**Keeps you safe**
 
-Each friend runs their own copy with their own vault and key file. There's nothing to share and no server to attack.
+- Locks itself when you step away, lock Windows or put the computer to sleep
+- Copied passwords disappear from the clipboard after 20 seconds and stay out of Windows clipboard history
+- Invisible in screenshots and screen sharing (Discord, OBS, Teams)
+- Warns you if an older copy of your vault ever replaces a newer one
+- Strong password and passphrase generator with a real strength meter
 
-## Exporting
+**Stays out of your way**
 
-- **Save encrypted copy…** writes a verified copy of the vault anywhere you like. It opens with the same master password and key file, so it's safe on a USB stick or a second cloud drive.
-- **Export to CSV…** writes every login in [Bitwarden's CSV format](https://bitwarden.com/help/condition-bitwarden-import/) (UTF-8, every cell quoted). In Bitwarden: *Tools → Import data → Bitwarden (csv)*. 2FA status and tags go in the `fields` column, and the first tag becomes the folder. Backup codes are only included if you choose to, and then they go in the notes. Cards and secure notes become Bitwarden notes (card details in `fields`), Wi‑Fi networks become logins, and custom fields go in `fields`. Attachments aren't in the CSV; use *Save copy…* on each one, or the encrypted copy.
-  The file is **not encrypted**: import it, then delete it and empty the Recycle Bin. Don't open and re-save it in Excel, which can change passwords that start with `=`, `+`, `-` or `@`.
+- Fast search, filters and keyboard shortcuts (Ctrl+F, Ctrl+C, Ctrl+B…)
+- Updates itself, and only installs updates signed by the developer
+- Export anytime: an encrypted backup, or a file you can import into Bitwarden
 
-## Releasing an update
+## Get started
 
-Releases are built and signed on your own computer, so the signing key never goes to GitHub.
+1. **Download** `Lockbox-win-Setup.exe` from the [latest release](https://github.com/TylerJayP/Lockbox/releases/latest) and run it. Windows may say *"Windows protected your PC"* because the installer isn't code-signed. Click **More info → Run anyway**. This only happens once; updates install themselves after that.
+2. **Create a vault.** Let Lockbox generate a six-word master passphrase, save your key file to a USB stick, and print the emergency sheet.
+3. **Add your passwords**, or import them from your old text file with **Import .txt**.
 
-**One-time setup**
+New to Lockbox? The [user guide](docs/GUIDE.md) walks through everything.
 
-1. Install Velopack's packaging tool: `dotnet tool install -g vpk`
-2. Create your signing key (choose a strong passphrase; you'll type it for each release):
-   ```
-   dotnet run --project tools/Lockbox.Release -- keygen
-   ```
-   This saves the private key, encrypted, to `~/lockbox-release.lbxsign`, and writes the **public** key into `src/Lockbox.App/Services/UpdateTrust.cs`. **Back up the `.lbxsign` file** (e.g. on your USB stick). If it's lost, existing installs can't accept new updates, and everyone has to reinstall.
-3. Commit `UpdateTrust.cs` (it holds only the public key).
-4. Make a GitHub token: *Settings → Developer settings → Fine-grained tokens*, give it access to this repo only, with **Contents: Read and write**. Either set it as `LOCKBOX_GITHUB_TOKEN` or log in with the GitHub CLI (`gh auth login`), and the tool will find it.
+## How your data is protected
 
-**Each release**
+- **Encrypted with modern, well-tested crypto:** XChaCha20‑Poly1305 and Argon2id from the libsodium library. Nothing is home-made.
+- **Two factors:** without the key file, even the right password is useless, and vice versa.
+- **Slow to crack:** every password guess costs about a second and 256 MB of memory, which defeats GPU cracking farms.
+- **Tamper-evident:** if a single byte of your vault file is changed, Lockbox refuses to open it rather than showing altered data.
+- **No back doors, no recovery:** nobody, including the developer, can open your vault. That also means a forgotten master password can't be reset.
 
-```
-dotnet run --project tools/Lockbox.Release -- release 0.5.1 --notes notes.md
-```
+The full details, including the file format and honest limitations, are in [SECURITY.md](docs/SECURITY.md).
 
-That runs the tests, builds the Windows app, packages it with Velopack (installer, full package and a small delta from the previous release), signs it, uploads it to GitHub as a draft, attaches the signature, and publishes. Installed copies offer the update the next time they start. Add `--dry-run` to build and sign everything locally without publishing.
+## Questions
 
-Bump the version every time (e.g. 0.5.1 → 0.5.2); Lockbox only offers newer versions.
+<details>
+<summary><b>Does Lockbox need the internet?</b></summary>
+<br>
+No. The only time it goes online is an optional check for updates on GitHub, which you can turn off in Settings. Your vault never leaves your computer.
+</details>
 
-**How the update check works:** the app asks GitHub for the newest release (via Velopack), downloads `lockbox-update.json` + `lockbox-update.sig` for that version, and verifies the Ed25519 signature with the public key built into the app *before downloading the update*. After downloading, it checks the package's SHA-256 against the signed manifest, and deletes the package if anything doesn't match. Velopack's automatic install-on-startup is turned off, so nothing unverified is ever installed.
+<details>
+<summary><b>What if I forget my master password?</b></summary>
+<br>
+There's no reset, by design. If Lockbox could reset it, so could an attacker. The emergency sheet replaces a lost key file, but not the master password, so write the passphrase down and keep it somewhere safe and separate.
+</details>
 
-## How it's protected
+<details>
+<summary><b>Can I keep my vault in OneDrive or Google Drive?</b></summary>
+<br>
+Yes. The file is encrypted, so the cloud only ever sees scrambled data. Keep the key file somewhere else (like a USB stick). If two copies ever get out of sync, Lockbox asks before overwriting anything.
+</details>
 
-```
-stretched = Argon2id(password, salt, 256 MiB, N passes)          tuned to about 1 s on the creating PC
-vaultKey  = HKDF-SHA256(stretched ‖ keyFile, salt, "Lockbox v1 vault key")
-file      = header ‖ XChaCha20-Poly1305(vaultKey, nonce, aad = header, payload)
-```
+<details>
+<summary><b>Can I move to another password manager later?</b></summary>
+<br>
+Yes. Settings → Export creates a file in Bitwarden's format, which Bitwarden, KeePassXC and 1Password can import. You're never locked in.
+</details>
 
-- **Key file** = 32 random bytes from the OS CSPRNG. An attacker needs both it and your password. The password alone is useless.
-- **Argon2id** (memory-hard) makes each password guess cost about a second and 256 MiB of RAM, which defeats GPU cracking farms.
-- **Authenticated encryption.** Changing any byte of the file (including the header and its KDF settings) makes it refuse to open. A fresh 24-byte nonce is used on every save. The contents are padded to 4 KB blocks so the file size doesn't reveal small changes.
-- **Backup codes** are encrypted a second time inside the vault, with their own Argon2id-derived key.
-- **Crypto comes from libsodium** (via NSec). Nothing is hand-rolled. Keys live in libsodium-managed memory and are destroyed when the vault locks.
-- **Safe saves:** each save writes a temp file, reads it back and decrypts it to prove it's good, then atomically replaces the vault. The previous version is copied to `<vault>.backups/` once per session (the last 20 are kept). If the file changed elsewhere (e.g. a sync from another PC), Lockbox asks instead of silently overwriting.
-- **No recovery.** If you lose the master password, or both the key file and the emergency sheet, the data is gone. That's the price of nobody else being able to get in.
+<details>
+<summary><b>Does it work on Mac, Linux or my phone?</b></summary>
+<br>
+The installer is Windows-only for now. Lockbox is built with Avalonia, so it runs on macOS and Linux from source (see <a href="docs/DEVELOPING.md">DEVELOPING.md</a>). There's no phone app yet.
+</details>
 
-### File format (v1)
+<details>
+<summary><b>Has it been audited?</b></summary>
+<br>
+No. It uses standard, widely trusted building blocks, but no outside security firm has reviewed this code. For your most critical accounts, weigh that up. <a href="docs/SECURITY.md#honest-limitations">SECURITY.md</a> lists the known limitations.
+</details>
 
-| Offset | Size | Field |
-|---|---|---|
-| 0 | 8 | magic `LBXVAULT` |
-| 8 | 2 | format version (1) |
-| 10 | 1 | KDF id (1 = Argon2id) |
-| 11 | 4 | memory KiB |
-| 15 | 4 | passes |
-| 19 | 1 | parallelism (1) |
-| 20 | 16 | salt |
-| 36 | 1 | cipher id (1 = XChaCha20-Poly1305) |
-| 37 | 24 | nonce |
-| 61 | … | ciphertext + 16-byte tag (payload = u32 length ‖ JSON ‖ zero padding) |
+## More
 
-## Honest limitations
+- [User guide](docs/GUIDE.md): importing, exporting, backup codes, shortcuts and backups
+- [Security](docs/SECURITY.md): how encryption, updates and the file format work
+- [Developing](docs/DEVELOPING.md): building from source, tests and project layout
+- [Releasing](docs/RELEASING.md): publishing a signed update
 
-- **Not professionally audited.** It uses vetted primitives in a standard construction, but nobody outside has reviewed this code. For your most critical accounts, KeePassXC or Bitwarden have years of scrutiny behind them.
-- **.NET strings can't be wiped.** Decrypted passwords shown in the UI live in managed memory until garbage-collected. Malware already running as you could read them. That's true of every password manager while unlocked.
-- **The clipboard is shared.** While a password is on the clipboard (20 s), any app can read it. Prefer typing over copying for really sensitive accounts.
-- Clipboard-history exclusion, screen-capture hiding and Win+L locking are Windows-only.
-- Attachments live inside the vault file, so the whole vault (up to 150 MB of attachments) is rewritten on every save. That's fine for documents, but it's not a place for photo libraries. Elsewhere, Lockbox detects sleep from timer gaps.
+---
 
-## Project layout
-
-```
-src/Lockbox.Core     Crypto, file format, vault, importer, generator (no UI)
-src/Lockbox.App      Avalonia desktop app (MVVM)
-tests/Lockbox.Tests  xUnit tests for the core
-tools/Lockbox.Screenshots   Headless renderer + end-to-end smoke test
-tools/Lockbox.Release       keygen + one-command signed release (see "Releasing an update")
-.github/workflows/ci.yml    Build + tests + smoke checks on every push (no release secrets)
-```
-
-## Credits
-
-- [libsodium](https://libsodium.org) via [NSec](https://nsec.rocks) (ISC / MIT)
-- [zxcvbn-core](https://github.com/trichards57/zxcvbn-cs) (MIT), a port of Dropbox's zxcvbn
-- [Avalonia UI](https://avaloniaui.net) (MIT), [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) (MIT)
-- [Velopack](https://velopack.io) installer and updates (MIT), [QRCoder](https://github.com/codebude/QRCoder) (MIT)
-- EFF Large Wordlist for passphrases ([CC BY 3.0 US](https://www.eff.org/dice)), via KeePassXC's copy
-- Icons from [Material Design Icons](https://pictogrammers.com/library/mdi/) (Apache 2.0)
+<p align="center">
+  Made by <a href="https://github.com/TylerJayP">Tyler Perkins</a> with
+  <a href="https://avaloniaui.net">Avalonia</a>,
+  <a href="https://libsodium.org">libsodium</a> and
+  <a href="https://velopack.io">Velopack</a>.
+</p>

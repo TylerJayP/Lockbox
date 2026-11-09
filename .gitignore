@@ -11,3 +11,4 @@ shots/
 lockbox-export*.csv
 Releases/
 *.lbxsign
+raw-shots/

@@ -10,8 +10,8 @@ using Lockbox.Core;
 using Lockbox.Core.Crypto;
 using Lockbox.Core.Model;
 
-string outDir = args.Length > 0 && args[0] != "smoke" ? args[0] : "shots";
-if (args is not ["smoke", ..]) Directory.CreateDirectory(outDir);
+string outDir = args.Length > 0 && args[0] is not ("smoke" or "readme") ? args[0] : "shots";
+if (args is not (["smoke", ..] or ["readme", ..])) Directory.CreateDirectory(outDir);
 Environment.SetEnvironmentVariable("LOCKBOX_SETTINGS_DIR", Path.Combine(Path.GetTempPath(), "lockbox-shots-config"));
 
 AppBuilder.Configure<App>()
@@ -19,6 +19,12 @@ AppBuilder.Configure<App>()
     .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
     .WithInterFont()
     .SetupWithoutStarting();
+
+if (args is ["readme", ..])
+{
+    ReadmeShots.Run(args.Length > 1 ? args[1] : Path.Combine("docs", "images"));
+    return;
+}
 
 if (args is ["smoke", ..])
 {
