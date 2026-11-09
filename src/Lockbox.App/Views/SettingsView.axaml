@@ -44,6 +44,29 @@
                 </StackPanel>
             </Border>
 
+            <!-- Updates -->
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="h2" Text="Updates" />
+                    <TextBlock Text="{Binding VersionText}" />
+                    <TextBlock Classes="warn" FontSize="12" IsVisible="{Binding !UpdatesConfigured}"
+                               Text="This build has no update-signing key, so automatic updates are off. Builds from the Releases page have it." />
+                    <CheckBox IsChecked="{Binding CheckForUpdates}" IsEnabled="{Binding UpdatesConfigured}">
+                        <StackPanel>
+                            <TextBlock Text="Check for updates when Lockbox starts" />
+                            <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap"
+                                       Text="Asks GitHub whether there's a newer release. Nothing about your vault is sent. This is the only time Lockbox goes online. Updates are installed only if they're signed with the developer's key." />
+                        </StackPanel>
+                    </CheckBox>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="Check now" Command="{Binding CheckUpdatesNowCommand}" IsEnabled="{Binding UpdatesConfigured}" />
+                        <Button Classes="ghost" Content="Open releases page" Command="{Binding OpenReleasesCommand}" />
+                    </StackPanel>
+                    <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap" Text="{Binding UpdateStatus}"
+                               IsVisible="{Binding UpdateStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+            </Border>
+
             <!-- This computer -->
             <Border Classes="card">
                 <StackPanel Spacing="12">

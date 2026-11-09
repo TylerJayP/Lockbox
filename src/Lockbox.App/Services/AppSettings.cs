@@ -17,6 +17,9 @@ public sealed class AppSettings
     /// <summary>Black out the window in screenshots, screen recordings and screen sharing (Windows 10 2004+).</summary>
     public bool HideFromScreenCapture { get; set; } = true;
 
+    /// <summary>Ask GitHub for a newer version when Lockbox starts. The only time Lockbox goes online.</summary>
+    public bool CheckForUpdates { get; set; } = true;
+
     /// <summary>
     /// Newest save of each vault this computer has seen (by vault id). Used to warn when an older copy
     /// replaces a newer one, e.g. a sync tool restoring an old file. Holds no secrets.
@@ -34,7 +37,9 @@ public sealed class AppSettings
     }
 
     private static string FilePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Lockbox", "settings.json");
+        Environment.GetEnvironmentVariable("LOCKBOX_SETTINGS_DIR") is { Length: > 0 } dir ? dir
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Lockbox"),
+        "settings.json");
 
     public static AppSettings Load()
     {

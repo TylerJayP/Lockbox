@@ -8,11 +8,35 @@
         Width="1140" Height="760" MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterScreen">
 
-    <Panel>
-        <ContentControl Content="{Binding CurrentPage}" />
+    <Grid RowDefinitions="Auto,*">
+        <!-- Update banner -->
+        <Border Background="#16284A" BorderBrush="#24406F" BorderThickness="0,0,0,1" Padding="16,8" IsVisible="{Binding UpdateBannerVisible}">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+                <PathIcon Data="{StaticResource IconImport}" Foreground="#9EC0FF" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Margin="10,0" VerticalAlignment="Center">
+                    <Run Text="Lockbox" FontWeight="SemiBold" />
+                    <Run Text="{Binding UpdateVersion}" FontWeight="SemiBold" />
+                    <Run Text=" is available." />
+                </TextBlock>
+                <Button Grid.Column="2" Classes="ghost" Content="What's new" Command="{Binding ShowUpdateNotesCommand}" Margin="0,0,6,0" />
+                <Panel Grid.Column="3">
+                    <Button Classes="accent" Content="Update and restart" Command="{Binding InstallUpdateCommand}" IsVisible="{Binding UpdateIdle}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding UpdateBusy}" VerticalAlignment="Center">
+                        <ProgressBar Width="140" Minimum="0" Maximum="100" Value="{Binding UpdateProgress}" />
+                        <TextBlock Classes="dim" FontSize="12" Text="Downloading and checking signature…" />
+                    </StackPanel>
+                </Panel>
+                <Button Grid.Column="4" Classes="icon" Command="{Binding DismissUpdateCommand}" ToolTip.Tip="Later" Margin="6,0,0,0"
+                        IsVisible="{Binding UpdateIdle}">
+                    <PathIcon Data="{StaticResource IconClose}" />
+                </Button>
+            </Grid>
+        </Border>
+
+        <ContentControl Grid.Row="1" Content="{Binding CurrentPage}" />
 
         <!-- In-window dialog -->
-        <Panel IsVisible="{Binding Dialog, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <Panel Grid.RowSpan="2" IsVisible="{Binding Dialog, Converter={x:Static ObjectConverters.IsNotNull}}">
             <Border Background="#B8000000" />
             <Border Classes="card" Width="500" MaxHeight="640" HorizontalAlignment="Center" VerticalAlignment="Center"
                     DataContext="{Binding Dialog}" x:DataType="vm:DialogViewModel" BoxShadow="0 20 60 0 #80000000">
@@ -61,5 +85,5 @@
                 </ScrollViewer>
             </Border>
         </Panel>
-    </Panel>
+    </Grid>
 </Window>

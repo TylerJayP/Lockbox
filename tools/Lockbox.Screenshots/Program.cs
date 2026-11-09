@@ -12,7 +12,7 @@ using Lockbox.Core.Model;
 
 string outDir = args.Length > 0 && args[0] != "smoke" ? args[0] : "shots";
 if (args is not ["smoke", ..]) Directory.CreateDirectory(outDir);
-Environment.SetEnvironmentVariable("XDG_CONFIG_HOME", Path.Combine(Path.GetTempPath(), "lockbox-shots-config"));
+Environment.SetEnvironmentVariable("LOCKBOX_SETTINGS_DIR", Path.Combine(Path.GetTempPath(), "lockbox-shots-config"));
 
 AppBuilder.Configure<App>()
     .UseSkia()
@@ -120,6 +120,14 @@ MainWindow NewWindow(out MainWindowViewModel vm)
     vm.OnUnlocked(vvm);
     vvm.Selected = vvm.Items.First(i => i.Title == "Steam");
     Shot(w, "03-vault");
+    vm.UpdateVersion = "0.5.1";
+    vm.UpdateBannerVisible = true;
+    Shot(w, "16-update-banner");
+    vm.UpdateBusy = true;
+    vm.UpdateProgress = 45;
+    Shot(w, "16b-update-progress");
+    vm.UpdateBusy = false;
+    vm.UpdateBannerVisible = false;
 
     // 4. Generator open on a weak entry
     vvm.Selected = vvm.Items.First(i => i.Title == "Netflix");

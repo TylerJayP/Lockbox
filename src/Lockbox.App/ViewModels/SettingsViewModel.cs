@@ -23,6 +23,7 @@ public partial class SettingsViewModel : ObservableObject
         LockOnMinimize = s.LockOnMinimize;
         PasswordHistoryLimit = s.PasswordHistoryLimit;
         _hideFromScreenCapture = owner.Main.Settings.HideFromScreenCapture;
+        _checkForUpdates = owner.Main.Settings.CheckForUpdates;
         RefreshInfo();
     }
 
@@ -32,6 +33,31 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _lockOnMinimize;
     [ObservableProperty] private decimal? _passwordHistoryLimit;
     [ObservableProperty] private string? _behaviourStatus;
+
+    // ── updates ──
+    [ObservableProperty] private bool _checkForUpdates;
+    [ObservableProperty] private string? _updateStatus;
+    [ObservableProperty] private bool _checkingUpdates;
+    public string VersionText => $"You're running Lockbox {Services.UpdateService.CurrentVersion}.";
+    public bool UpdatesConfigured => Services.UpdateService.IsConfigured;
+
+    partial void OnCheckForUpdatesChanged(bool value)
+    {
+        _owner.Main.Settings.CheckForUpdates = value;
+        _owner.Main.Settings.Save();
+    }
+
+    [RelayCommand]
+    private async Task CheckUpdatesNow()
+    {
+        CheckingUpdates = true;
+        UpdateStatus = "Checking…";
+        try { UpdateStatus = await _owner.Main.CheckForUpdatesAsync(userInitiated: true); }
+        finally { CheckingUpdates = false; }
+    }
+
+    [RelayCommand]
+    private void OpenReleases() => _owner.Platform.OpenUrl(Services.UpdateTrust.RepoUrl + "/releases/latest");
 
     // ── this computer ──
     [ObservableProperty] private bool _hideFromScreenCapture;

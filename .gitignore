@@ -9,3 +9,5 @@ shots/
 *.lbxkey
 *.backups/
 lockbox-export*.csv
+Releases/
+*.lbxsign

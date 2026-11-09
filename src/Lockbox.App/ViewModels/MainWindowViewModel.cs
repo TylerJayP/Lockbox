@@ -1,6 +1,8 @@
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Lockbox.App.Services;
+using Lockbox.Core.Updates;
 
 namespace Lockbox.App.ViewModels;
 
@@ -12,6 +14,79 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty] private object? _currentPage;
     [ObservableProperty] private DialogViewModel? _dialog;
     [ObservableProperty] private string _windowTitle = "Lockbox";
+
+    // ───────────── updates ─────────────
+    public UpdateService Updates { get; } = new();
+    [ObservableProperty] private bool _updateBannerVisible;
+    [ObservableProperty] private string _updateVersion = "";
+    [ObservableProperty] private string _updateNotes = "";
+    [ObservableProperty] private bool _updateBusy;
+    [ObservableProperty] private int _updateProgress;
+    public bool UpdateIdle => !UpdateBusy;
+    partial void OnUpdateBusyChanged(bool value) => OnPropertyChanged(nameof(UpdateIdle));
+
+    /// <summary>Checks GitHub for a newer release. Returns a sentence describing the result (for Settings).</summary>
+    public async Task<string> CheckForUpdatesAsync(bool userInitiated)
+    {
+        var r = await Updates.CheckAsync();
+        switch (r.Status)
+        {
+            case UpdateCheckStatus.Available:
+                UpdateVersion = r.Version!;
+                UpdateNotes = string.IsNullOrWhiteSpace(r.Notes) ? "No release notes for this version." : r.Notes!;
+                UpdateBannerVisible = true;
+                return $"Lockbox {r.Version} is available.";
+            case UpdateCheckStatus.UpToDate:
+                return $"You're on the latest version ({UpdateService.CurrentVersion}).";
+            case UpdateCheckStatus.NotInstalled:
+                return "This copy wasn't installed with Lockbox-win-Setup.exe, so it can't update itself. Install it from the Releases page once; it updates itself from then on.";
+            case UpdateCheckStatus.NotConfigured:
+                return "Updates aren't set up in this build (no signing key).";
+            default:
+                return userInitiated ? $"Couldn't check for updates: {r.Error}" : "";
+        }
+    }
+
+    [RelayCommand]
+    private void DismissUpdate() => UpdateBannerVisible = false;
+
+    [RelayCommand]
+    private Task ShowUpdateNotes() => AlertAsync($"What's new in Lockbox {UpdateVersion}", UpdateNotes);
+
+    [RelayCommand]
+    private async Task InstallUpdate()
+    {
+        if (UpdateBusy) return;
+        if (ActiveVault != null && !await ConfirmAsync($"Install Lockbox {UpdateVersion}?",
+                "Your changes will be saved and the vault locked, then Lockbox restarts on the new version. Unlock it again afterwards.",
+                "Update and restart"))
+            return;
+
+        UpdateBusy = true;
+        UpdateProgress = 0;
+        try
+        {
+            await Updates.DownloadVerifyAndRestartAsync(
+                p => Dispatcher.UIThread.Post(() => UpdateProgress = p),
+                beforeRestart: () =>
+                {
+                    ActiveVault?.SaveAndCloseOnExit();
+                    Platform.Clipboard.ClearIfOursOnExit();
+                });
+        }
+        catch (UpdateVerificationException ex)
+        {
+            UpdateBannerVisible = false;
+            await AlertAsync("Update blocked",
+                ex.Message + "\n\nLockbox only installs updates signed with the developer's key, so nothing was installed. " +
+                "If this keeps happening, tell the person who sent you Lockbox.");
+        }
+        catch (Exception ex)
+        {
+            await AlertAsync("Couldn't update", ex.Message + "\n\nNothing was changed. You can try again later.");
+        }
+        finally { UpdateBusy = false; }
+    }
 
     /// <summary>The unlocked vault, while there is one (it outlives the Import/Settings pages).</summary>
     public VaultViewModel? ActiveVault { get; private set; }

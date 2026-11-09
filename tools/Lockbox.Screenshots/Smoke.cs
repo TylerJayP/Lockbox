@@ -305,6 +305,14 @@ internal static class Smoke
 
         fv.Dispose();
 
+        // ── Updates (no signing key in this build → never installs anything) ──
+        var upd = new Lockbox.App.Services.UpdateService();
+        var res = upd.CheckAsync().GetAwaiter().GetResult();
+        Check(res.Status == Lockbox.App.Services.UpdateCheckStatus.NotConfigured || Lockbox.App.Services.UpdateService.IsConfigured,
+            "without a signing key, the updater stays off");
+        Check(Assert.Throws<InvalidOperationException>(() => upd.DownloadVerifyAndRestartAsync(_ => { }, () => { }).GetAwaiter().GetResult()),
+            "installing without a checked update is refused");
+
         // ── Nothing readable on disk ──
         var raw = System.Text.Encoding.Latin1.GetString(File.ReadAllBytes(vaultPath));
         Check(!raw.Contains("TylerJayP") && !raw.Contains("9999") && !raw.Contains("St3amPass"), "vault file contains no plaintext");

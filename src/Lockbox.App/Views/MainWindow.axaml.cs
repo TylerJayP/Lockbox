@@ -109,6 +109,10 @@ public partial class MainWindow : Window, IPlatform
     {
         base.OnOpened(e);
         SetCaptureProtection(_vm.Settings.HideFromScreenCapture);
+
+        // Quietly look for an update a few seconds after start (never blocks or nags if offline).
+        if (_vm.Settings.CheckForUpdates && UpdateService.IsConfigured)
+            DispatcherTimer.RunOnce(() => _ = _vm.CheckForUpdatesAsync(userInitiated: false), TimeSpan.FromSeconds(3));
     }
 
     [DllImport("user32.dll", SetLastError = true)]

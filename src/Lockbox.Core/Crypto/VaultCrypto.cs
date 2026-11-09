@@ -49,7 +49,11 @@ internal static class VaultCrypto
     }
 
     /// <summary>Key for the sealed backup-codes section: its own passphrase, salt and Argon2id run.</summary>
-    public static Key DeriveRecoveryKey(string passphrase, ReadOnlySpan<byte> salt, KdfParameters kdf)
+    public static Key DeriveRecoveryKey(string passphrase, ReadOnlySpan<byte> salt, KdfParameters kdf) =>
+        DerivePassphraseKey(passphrase, salt, kdf, RecoveryInfo);
+
+    /// <summary>Argon2id + HKDF from a passphrase alone, with a purpose label so keys for different jobs never coincide.</summary>
+    public static Key DerivePassphraseKey(string passphrase, ReadOnlySpan<byte> salt, KdfParameters kdf, ReadOnlySpan<byte> purpose)
     {
         byte[] pw = Kdf.PasswordBytes(passphrase);
         byte[]? stretched = null;
@@ -57,7 +61,7 @@ internal static class VaultCrypto
         try
         {
             stretched = Kdf.DeriveArgon2id(pw, salt, kdf);
-            HKDF.DeriveKey(HashAlgorithmName.SHA256, stretched, okm, salt, RecoveryInfo);
+            HKDF.DeriveKey(HashAlgorithmName.SHA256, stretched, okm, salt, purpose);
             return Key.Import(Aead, okm, KeyBlobFormat.RawSymmetricKey);
         }
         finally

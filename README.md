@@ -1,6 +1,6 @@
 # Lockbox
 
-A local, offline password manager for Windows, macOS and Linux. Your logins live in one encrypted file on your own computer. There's no server and no account, and nothing is ever sent anywhere.
+A local, offline password manager for Windows, macOS and Linux. Your logins live in one encrypted file on your own computer. There's no server and no account, and your data is never sent anywhere. The only network request is an optional check for app updates on GitHub.
 
 - **Two factors to unlock:** your master password plus a key file (keep it on a USB stick). If the key file is lost, you can type the key from a printed emergency sheet instead.
 - **Four item types:** **logins** (username, password, website, and a **"2FA is on" checkmark** with the method), **secure notes**, **payment cards** (number, expiry, security code, PIN, with brand detection and a typo check), and **Wi‑Fi networks** (with a **QR code** guests can scan to join).
@@ -10,6 +10,7 @@ A local, offline password manager for Windows, macOS and Linux. Your logins live
 - **Security check-up** (shield icon). Reused, weak, missing and 2+‑year‑old passwords, plus logins without 2FA, ordered by what to fix first.
 - **Hidden from screen sharing.** Discord, OBS, Teams and screenshots see a blank window (Windows 10 2004+; toggle in Settings).
 - **Rollback warning.** If an older copy of your vault replaces a newer one (a sync app restoring an old file, or someone swapping it), Lockbox tells you before opening it.
+- **Automatic, signed updates.** Installed copies check GitHub on start and offer "Update and restart". An update is installed only if it's signed with the developer's offline key, so a hijacked GitHub account can't push a malicious version. Updates are small deltas (a couple of MB).
 - **Keyboard shortcuts:** Ctrl+F search, Enter/Ctrl+C copy password (in the list), Ctrl+B copy username, Ctrl+U open site, Ctrl+N new login, Ctrl+S save, Ctrl+L lock. The full list is in Settings.
 - **Backup codes get a second lock.** They're sealed with a separate recovery passphrase, so someone who learns your master password still can't read them. They lock again after 3 minutes.
 - **Import your old .txt file.** It understands most hand-written layouts, you review every login before saving, and it can then overwrite and delete the original.
@@ -18,9 +19,13 @@ A local, offline password manager for Windows, macOS and Linux. Your logins live
 - Password and passphrase **generator**, **strength meter** (zxcvbn), and **weak/reused password** warnings.
 - **Auto-lock** after idle time, on Windows lock (Win+L), on sleep, and optionally on minimize. **Copied passwords are wiped** from the clipboard after 20 s and kept out of Windows clipboard history and cloud sync.
 
-## Run it
+## Install
 
-**Windows (no install needed):** run `Lockbox.exe`. It's self-contained, so .NET doesn't need to be installed. Windows SmartScreen will warn because the exe isn't code-signed. Click *More info → Run anyway*.
+**Windows:** download **`Lockbox-win-Setup.exe`** from the [latest release](https://github.com/TylerJayP/Lockbox/releases/latest) and run it. Lockbox installs for your user only (no admin), adds Start-menu and desktop shortcuts, and **updates itself** from then on.
+
+Windows SmartScreen will say "Windows protected your PC" the first time, because the installer isn't code-signed. Click *More info → Run anyway*. Updates installed by Lockbox itself don't trigger it again.
+
+Your vault and key file live wherever you saved them. Installing, updating or uninstalling Lockbox never touches them.
 
 **From source** (needs the .NET 10 SDK):
 
@@ -28,7 +33,7 @@ A local, offline password manager for Windows, macOS and Linux. Your logins live
 dotnet run --project src/Lockbox.App
 ```
 
-**Build a single-file exe for a friend:**
+**Build a single-file exe without the installer** (it won't update itself):
 
 ```
 dotnet publish src/Lockbox.App -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o publish/win-x64
@@ -36,7 +41,7 @@ dotnet publish src/Lockbox.App -c Release -r win-x64 --self-contained -p:Publish
 
 Use `-r osx-arm64` (Apple Silicon Mac), `-r osx-x64` or `-r linux-x64` for other systems. Mac builds aren't signed, so friends will need to right-click → Open the first time.
 
-**Tests:** `dotnet test` (90 unit tests). The `tools/Lockbox.Screenshots` project renders every screen headlessly (`dotnet run --project tools/Lockbox.Screenshots -- shots`) and drives the real view-models end to end (`… -- smoke`).
+**Tests:** `dotnet test` (98 unit tests). The `tools/Lockbox.Screenshots` project renders every screen headlessly (`dotnet run --project tools/Lockbox.Screenshots -- shots`) and drives the real view-models end to end (`… -- smoke`).
 
 ## Getting started
 
@@ -51,6 +56,33 @@ Each friend runs their own copy with their own vault and key file. There's nothi
 - **Save encrypted copy…** writes a verified copy of the vault anywhere you like. It opens with the same master password and key file, so it's safe on a USB stick or a second cloud drive.
 - **Export to CSV…** writes every login in [Bitwarden's CSV format](https://bitwarden.com/help/condition-bitwarden-import/) (UTF-8, every cell quoted). In Bitwarden: *Tools → Import data → Bitwarden (csv)*. 2FA status and tags go in the `fields` column, and the first tag becomes the folder. Backup codes are only included if you choose to, and then they go in the notes. Cards and secure notes become Bitwarden notes (card details in `fields`), Wi‑Fi networks become logins, and custom fields go in `fields`. Attachments aren't in the CSV; use *Save copy…* on each one, or the encrypted copy.
   The file is **not encrypted**: import it, then delete it and empty the Recycle Bin. Don't open and re-save it in Excel, which can change passwords that start with `=`, `+`, `-` or `@`.
+
+## Releasing an update
+
+Releases are built and signed on your own computer, so the signing key never goes to GitHub.
+
+**One-time setup**
+
+1. Install Velopack's packaging tool: `dotnet tool install -g vpk`
+2. Create your signing key (choose a strong passphrase; you'll type it for each release):
+   ```
+   dotnet run --project tools/Lockbox.Release -- keygen
+   ```
+   This saves the private key, encrypted, to `~/lockbox-release.lbxsign`, and writes the **public** key into `src/Lockbox.App/Services/UpdateTrust.cs`. **Back up the `.lbxsign` file** (e.g. on your USB stick). If it's lost, existing installs can't accept new updates, and everyone has to reinstall.
+3. Commit `UpdateTrust.cs` (it holds only the public key).
+4. Make a GitHub token: *Settings → Developer settings → Fine-grained tokens*, give it access to this repo only, with **Contents: Read and write**. Either set it as `LOCKBOX_GITHUB_TOKEN` or log in with the GitHub CLI (`gh auth login`), and the tool will find it.
+
+**Each release**
+
+```
+dotnet run --project tools/Lockbox.Release -- release 0.5.1 --notes notes.md
+```
+
+That runs the tests, builds the Windows app, packages it with Velopack (installer, full package and a small delta from the previous release), signs it, uploads it to GitHub as a draft, attaches the signature, and publishes. Installed copies offer the update the next time they start. Add `--dry-run` to build and sign everything locally without publishing.
+
+Bump the version every time (e.g. 0.5.1 → 0.5.2); Lockbox only offers newer versions.
+
+**How the update check works:** the app asks GitHub for the newest release (via Velopack), downloads `lockbox-update.json` + `lockbox-update.sig` for that version, and verifies the Ed25519 signature with the public key built into the app *before downloading the update*. After downloading, it checks the package's SHA-256 against the signed manifest, and deletes the package if anything doesn't match. Velopack's automatic install-on-startup is turned off, so nothing unverified is ever installed.
 
 ## How it's protected
 
@@ -98,6 +130,8 @@ src/Lockbox.Core     Crypto, file format, vault, importer, generator (no UI)
 src/Lockbox.App      Avalonia desktop app (MVVM)
 tests/Lockbox.Tests  xUnit tests for the core
 tools/Lockbox.Screenshots   Headless renderer + end-to-end smoke test
+tools/Lockbox.Release       keygen + one-command signed release (see "Releasing an update")
+.github/workflows/ci.yml    Build + tests + smoke checks on every push (no release secrets)
 ```
 
 ## Credits
@@ -105,5 +139,6 @@ tools/Lockbox.Screenshots   Headless renderer + end-to-end smoke test
 - [libsodium](https://libsodium.org) via [NSec](https://nsec.rocks) (ISC / MIT)
 - [zxcvbn-core](https://github.com/trichards57/zxcvbn-cs) (MIT), a port of Dropbox's zxcvbn
 - [Avalonia UI](https://avaloniaui.net) (MIT), [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) (MIT)
+- [Velopack](https://velopack.io) installer and updates (MIT), [QRCoder](https://github.com/codebude/QRCoder) (MIT)
 - EFF Large Wordlist for passphrases ([CC BY 3.0 US](https://www.eff.org/dice)), via KeePassXC's copy
 - Icons from [Material Design Icons](https://pictogrammers.com/library/mdi/) (Apache 2.0)
