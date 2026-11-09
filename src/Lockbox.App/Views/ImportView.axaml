@@ -1,0 +1,110 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lockbox.App.ViewModels"
+             x:Class="Lockbox.App.Views.ImportView"
+             x:DataType="vm:ImportViewModel">
+    <UserControl.Styles>
+        <Style Selector="Border.row.excluded">
+            <Setter Property="Opacity" Value="0.45" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,*">
+        <Grid ColumnDefinitions="Auto,*" Margin="24,20,24,12">
+            <Button Classes="icon" Command="{Binding CancelCommand}" ToolTip.Tip="Back to vault">
+                <PathIcon Data="{StaticResource IconBack}" />
+            </Button>
+            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                <TextBlock Classes="h1" Text="Import from a text file" />
+                <TextBlock Classes="dim" TextWrapping="Wrap"
+                           Text="Everything happens on this computer. You'll review every login before anything is saved." />
+            </StackPanel>
+        </Grid>
+
+        <!-- Step 1: source text -->
+        <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto" Margin="24,0,24,24" IsVisible="{Binding NotReviewing}">
+            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,10">
+                <Button Command="{Binding OpenFileCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="{StaticResource IconImport}" />
+                        <TextBlock Text="Open .txt file…" />
+                    </StackPanel>
+                </Button>
+                <TextBlock Classes="dim" VerticalAlignment="Center" Text="{Binding SourceName}" />
+                <TextBlock Classes="dim" VerticalAlignment="Center" Text="or paste the contents below" />
+            </StackPanel>
+            <TextBox Grid.Row="1" Classes="multi mono" Text="{Binding SourceText}" FontSize="13"
+                     PlaceholderText="Any of these layouts work, even mixed together:&#10;&#10;Netflix&#10;email: me@example.com&#10;password: hunter2&#10;&#10;Steam | myname | St3amPass&#10;Amazon - me@example.com - Amaz0n!&#10;&#10;Google&#10;user: me@gmail.com&#10;pass: …&#10;2FA: authenticator&#10;Backup codes:&#10;1234 5678&#10;2345 6789" />
+            <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+                <TextBlock Classes="error" VerticalAlignment="Center" Text="{Binding Error}" />
+                <Button Grid.Column="1" Classes="accent" Content="Find logins" Command="{Binding FindLoginsCommand}" Padding="18,9" />
+            </Grid>
+        </Grid>
+
+        <!-- Step 2: review -->
+        <Grid Grid.Row="1" RowDefinitions="Auto,*" IsVisible="{Binding Reviewing}">
+            <Border Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}" BorderThickness="0,1" Padding="24,10">
+                <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto">
+                    <TextBlock VerticalAlignment="Center" Text="{Binding Summary}" TextWrapping="Wrap" />
+                    <Button Grid.Column="1" Classes="ghost" Content="Select all" Command="{Binding SelectAllCommand}" CommandParameter="true" />
+                    <Button Grid.Column="2" Classes="ghost" Content="Select none" Command="{Binding SelectAllCommand}" CommandParameter="false" Margin="4,0" />
+                    <Button Grid.Column="3" Classes="ghost" Content="Back to text" Command="{Binding BackToTextCommand}" Margin="0,0,8,0" />
+                    <Button Grid.Column="4" Classes="accent" Content="Import selected" Command="{Binding ImportCommand}" Padding="18,9" />
+                </Grid>
+            </Border>
+            <ScrollViewer Grid.Row="1">
+                <StackPanel Margin="24,16" Spacing="12" MaxWidth="1000">
+                    <TextBlock Classes="error" Text="{Binding Error}"
+                               IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <ItemsControl ItemsSource="{Binding Rows}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><StackPanel Spacing="10" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ImportRowViewModel">
+                                <Border Classes="card row" Classes.excluded="{Binding !Include}" Padding="16">
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <CheckBox IsChecked="{Binding Include}" VerticalAlignment="Top" Margin="0,4,8,0" />
+                                        <StackPanel Grid.Column="1" Spacing="10">
+                                            <TextBox Text="{Binding Title}" FontWeight="SemiBold" FontSize="16" />
+                                            <Border Classes="notice" IsVisible="{Binding HasWarnings}">
+                                                <TextBlock Classes="warn" FontSize="12" Text="{Binding Warnings}" />
+                                            </Border>
+                                            <Grid ColumnDefinitions="*,*,*">
+                                                <StackPanel>
+                                                    <TextBlock Classes="label" Text="Username" />
+                                                    <TextBox Text="{Binding Username}" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" Margin="10,0">
+                                                    <TextBlock Classes="label" Text="Password" />
+                                                    <TextBox Classes="mono" Text="{Binding Password}" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Classes="label" Text="Website" />
+                                                    <TextBox Text="{Binding Url}" />
+                                                </StackPanel>
+                                            </Grid>
+                                            <CheckBox Content="2FA is on" IsChecked="{Binding TwoFactorEnabled}" />
+                                            <StackPanel IsVisible="{Binding HasCodes}">
+                                                <TextBlock Classes="label" Text="Backup codes (will be sealed with your recovery passphrase)" />
+                                                <TextBox Classes="multi mono" Text="{Binding BackupCodes}" MinHeight="60" />
+                                            </StackPanel>
+                                            <StackPanel IsVisible="{Binding HasNotes}">
+                                                <TextBlock Classes="label" Text="Notes" />
+                                                <TextBox Classes="multi" Text="{Binding Notes}" />
+                                            </StackPanel>
+                                            <Button Classes="link" FontSize="12" Content="Show the original lines" Command="{Binding ToggleSourceCommand}" />
+                                            <Border Classes="section" IsVisible="{Binding ShowSource}">
+                                                <SelectableTextBlock Classes="mono" FontSize="12" Text="{Binding SourceText}" TextWrapping="Wrap" />
+                                            </Border>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

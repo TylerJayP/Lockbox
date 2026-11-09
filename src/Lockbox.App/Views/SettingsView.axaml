@@ -1,0 +1,179 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lockbox.App.ViewModels"
+             x:Class="Lockbox.App.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+    <ScrollViewer>
+        <StackPanel Width="680" HorizontalAlignment="Center" Margin="24,24,24,40" Spacing="16">
+            <Grid ColumnDefinitions="Auto,*">
+                <Button Classes="icon" Command="{Binding BackCommand}" ToolTip.Tip="Back to vault">
+                    <PathIcon Data="{StaticResource IconBack}" />
+                </Button>
+                <TextBlock Grid.Column="1" Classes="h1" Text="Settings" Margin="8,0,0,0" VerticalAlignment="Center" />
+            </Grid>
+
+            <!-- Locking -->
+            <Border Classes="card">
+                <StackPanel Spacing="14">
+                    <TextBlock Classes="h2" Text="Locking, clipboard and history" />
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Lock after this many minutes without activity" />
+                            <TextBlock Classes="dim" FontSize="12" Text="Lockbox also locks when Windows locks (Win+L) or the computer sleeps." />
+                        </StackPanel>
+                        <NumericUpDown Grid.Column="1" Width="130" Minimum="1" Maximum="240" Increment="1" FormatString="0"
+                                       Value="{Binding AutoLockMinutes}" />
+                        <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="0,12,0,0">
+                            <TextBlock Text="Clear copied passwords after (seconds)" />
+                            <TextBlock Classes="dim" FontSize="12" Text="Copies are also kept out of Windows clipboard history and cloud sync." />
+                        </StackPanel>
+                        <NumericUpDown Grid.Row="1" Grid.Column="1" Width="130" Minimum="5" Maximum="600" Increment="5" FormatString="0"
+                                       Value="{Binding ClipboardClearSeconds}" Margin="0,12,0,0" />
+                        <StackPanel Grid.Row="2" VerticalAlignment="Center" Margin="0,12,0,0">
+                            <TextBlock Text="Old passwords to keep per login" />
+                            <TextBlock Classes="dim" FontSize="12" Text="Saved when you change a password. 0 turns history off." />
+                        </StackPanel>
+                        <NumericUpDown Grid.Row="2" Grid.Column="1" Width="130" Minimum="0" Maximum="50" Increment="1" FormatString="0"
+                                       Value="{Binding PasswordHistoryLimit}" Margin="0,12,0,0" />
+                    </Grid>
+                    <CheckBox Content="Lock when the window is minimized" IsChecked="{Binding LockOnMinimize}" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Button Classes="accent" Content="Save" Command="{Binding SaveBehaviourCommand}" />
+                        <TextBlock Foreground="{StaticResource OkBrush}" VerticalAlignment="Center" Text="{Binding BehaviourStatus}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- This computer -->
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="h2" Text="Privacy on this computer" />
+                    <CheckBox IsChecked="{Binding HideFromScreenCapture}">
+                        <StackPanel>
+                            <TextBlock Text="Hide Lockbox from screenshots, recordings and screen sharing" />
+                            <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap"
+                                       Text="Discord, OBS, Teams and the Snipping Tool see a blank window instead of your passwords. You still see it normally. Windows only." />
+                        </StackPanel>
+                    </CheckBox>
+                    <TextBlock Classes="dim" FontSize="12" Text="{Binding CaptureStatus}"
+                               IsVisible="{Binding CaptureStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Change master password -->
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="h2" Text="Change master password" />
+                    <TextBlock Classes="dim" TextWrapping="Wrap"
+                               Text="Re-encrypts the vault under a new password. You can also swap in a brand-new key file, e.g. if the old one may have been copied." />
+                    <StackPanel>
+                        <TextBlock Classes="label" Text="Current master password" />
+                        <TextBox Text="{Binding CurrentPassword}" PasswordChar="•" Classes="revealPasswordButton" />
+                    </StackPanel>
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="label" Text="New master password" Margin="0" />
+                        <TextBox Classes="mono revealPasswordButton" Text="{Binding NewPassword}" PasswordChar="•" RevealPassword="{Binding RevealNew}" />
+                        <ProgressBar Classes="strength" Value="{Binding StrengthValue}" Foreground="{Binding StrengthBrush}" />
+                        <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap" Text="{Binding StrengthText}" />
+                        <TextBox Classes="mono revealPasswordButton" Text="{Binding ConfirmNewPassword}" PasswordChar="•" RevealPassword="{Binding RevealNew}"
+                                 PlaceholderText="Type it again" />
+                    </StackPanel>
+                    <Button Command="{Binding GeneratePassphraseCommand}" HorizontalAlignment="Left">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="{StaticResource IconRefresh}" />
+                            <TextBlock Text="Generate a passphrase" />
+                        </StackPanel>
+                    </Button>
+                    <CheckBox Content="Also create a new key file (the old one stops working)" IsChecked="{Binding NewKeyFile}" />
+                    <TextBlock Classes="error" Text="{Binding ChangeError}"
+                               IsVisible="{Binding ChangeError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <TextBlock Foreground="{StaticResource OkBrush}" TextWrapping="Wrap" Text="{Binding ChangeStatus}"
+                               IsVisible="{Binding ChangeStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
+                    <Button Classes="accent" Content="Change master password" Command="{Binding ChangeMasterPasswordCommand}" HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
+            <!-- Recovery -->
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="h2" Text="Backup-code lock" />
+                    <TextBlock Classes="dim" TextWrapping="Wrap" Text="{Binding RecoveryText}" />
+                    <Button Content="Change recovery passphrase" Command="{Binding ChangeRecoveryPassphraseCommand}"
+                            IsVisible="{Binding RecoveryConfigured}" HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
+            <!-- Export -->
+            <Border Classes="card">
+                <StackPanel Spacing="16">
+                    <TextBlock Classes="h2" Text="Export" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Margin="0,0,16,0">
+                            <TextBlock Text="Encrypted copy" FontWeight="SemiBold" />
+                            <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap"
+                                       Text="A full backup to keep on a USB stick or another drive. It opens with the same master password and key file, so it's safe to store anywhere." />
+                        </StackPanel>
+                        <Button Grid.Column="1" VerticalAlignment="Center" Content="Save encrypted copy…" Command="{Binding SaveEncryptedCopyCommand}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Margin="0,0,16,0">
+                            <TextBlock Text="Readable CSV (Bitwarden format)" FontWeight="SemiBold" />
+                            <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap"
+                                       Text="For moving to Bitwarden, KeePassXC, 1Password or a spreadsheet. NOT encrypted: anyone with the file can read every password. Asks for your master password first." />
+                        </StackPanel>
+                        <Button Grid.Column="1" VerticalAlignment="Center" Classes="danger" Content="Export to CSV…" Command="{Binding ExportCsvCommand}" />
+                    </Grid>
+                    <Border Classes="notice" IsVisible="{Binding ExportStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <PathIcon Data="{StaticResource IconShield}" Foreground="{StaticResource OkBrush}" IsVisible="{Binding !ExportFailed}" VerticalAlignment="Top" />
+                            <PathIcon Data="{StaticResource IconAlert}" Foreground="{StaticResource WarnBrush}" IsVisible="{Binding ExportFailed}" VerticalAlignment="Top" />
+                            <TextBlock Text="{Binding ExportStatus}" TextWrapping="Wrap" MaxWidth="560" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- Shortcuts -->
+            <Border Classes="card">
+                <StackPanel Spacing="10">
+                    <TextBlock Classes="h2" Text="Keyboard shortcuts" />
+                    <ItemsControl ItemsSource="{Binding Shortcuts}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ShortcutRow">
+                                <Grid ColumnDefinitions="260,*" Margin="0,3">
+                                    <TextBlock Classes="mono" FontSize="13" Text="{Binding Keys}" Foreground="#9EC0FF" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Action}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- File & backups -->
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="h2" Text="Vault file and backups" />
+                    <StackPanel>
+                        <TextBlock Classes="label" Text="Vault file" />
+                        <SelectableTextBlock Classes="mono" FontSize="12" Text="{Binding VaultPath}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Classes="label" Text="Encryption" />
+                        <TextBlock FontSize="12" TextWrapping="Wrap" Text="XChaCha20-Poly1305 (authenticated: any tampering is detected)" />
+                        <TextBlock FontSize="12" TextWrapping="Wrap" Text="{Binding KdfText}" />
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Classes="label" Text="Backups" />
+                        <TextBlock FontSize="12" TextWrapping="Wrap" Text="{Binding BackupsText}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="Open backups folder" Command="{Binding OpenBackupsFolderCommand}" />
+                        <Button Classes="danger" Content="Delete all backups" Command="{Binding DeleteBackupsCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

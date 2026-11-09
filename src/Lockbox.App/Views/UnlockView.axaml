@@ -1,0 +1,86 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lockbox.App.ViewModels"
+             x:Class="Lockbox.App.Views.UnlockView"
+             x:DataType="vm:UnlockViewModel">
+    <ScrollViewer>
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="460" Margin="24,40" Spacing="18">
+            <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
+                <Image Source="/Assets/lockbox.png" Width="46" Height="46" />
+                <TextBlock Classes="h1" Text="Lockbox" VerticalAlignment="Center" FontSize="30" />
+            </StackPanel>
+            <TextBlock Classes="dim" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                       Text="Your passwords, encrypted on your own computer. Nothing is ever sent anywhere." />
+
+            <Border Classes="notice" IsVisible="{Binding HasLockedReason}">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <PathIcon Data="{StaticResource IconLock}" Foreground="{StaticResource WarnBrush}" />
+                    <TextBlock Classes="warn" Text="{Binding LockedReason}" MaxWidth="380" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel Spacing="16">
+                    <StackPanel>
+                        <TextBlock Classes="label" Text="Vault file" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBox Text="{Binding VaultPath}" PlaceholderText="Choose your .lbx vault file" />
+                            <Button Grid.Column="1" Margin="8,0,0,0" Content="Browse…" Command="{Binding BrowseVaultCommand}" />
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel>
+                        <TextBlock Classes="label" Text="Master password" />
+                        <TextBox Name="PasswordBox" Text="{Binding Password}" PasswordChar="•" Classes="revealPasswordButton">
+                            <TextBox.KeyBindings>
+                                <KeyBinding Gesture="Enter" Command="{Binding UnlockCommand}" />
+                            </TextBox.KeyBindings>
+                        </TextBox>
+                    </StackPanel>
+
+                    <StackPanel IsVisible="{Binding !TypeKeyManually}">
+                        <TextBlock Classes="label" Text="Key file" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBox Text="{Binding KeyFilePath}" PlaceholderText="Choose your .lbxkey file (e.g. on your USB stick)" />
+                            <Button Grid.Column="1" Margin="8,0,0,0" Content="Browse…" Command="{Binding BrowseKeyFileCommand}" />
+                        </Grid>
+                        <CheckBox Margin="0,8,0,0" IsChecked="{Binding RememberKeyFileLocation}"
+                                  Content="Remember where my key file is on this computer" />
+                    </StackPanel>
+
+                    <StackPanel IsVisible="{Binding TypeKeyManually}" Spacing="8">
+                        <TextBlock Classes="label" Text="Key from your emergency sheet" Margin="0" />
+                        <TextBox Classes="mono multi" Height="80" Text="{Binding ManualKey}"
+                                 PlaceholderText="Type the 16 groups of 4 characters (spaces don't matter)" />
+                        <TextBox Classes="mono" Width="220" HorizontalAlignment="Left" Text="{Binding ManualCheck}"
+                                 PlaceholderText="CHECK (8 characters)" />
+                    </StackPanel>
+
+                    <CheckBox IsChecked="{Binding TypeKeyManually}" Content="I don't have my key file. Type the key from my emergency sheet" />
+
+                    <TextBlock Classes="error" Text="{Binding Error}"
+                               IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+                    <Button Classes="accent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="14,10"
+                            Command="{Binding UnlockCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="{StaticResource IconLock}" />
+                            <TextBlock Text="Unlock" FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Button>
+
+                    <StackPanel Spacing="6" IsVisible="{Binding IsBusy}">
+                        <ProgressBar IsIndeterminate="True" />
+                        <TextBlock Classes="dim" FontSize="12" HorizontalAlignment="Center"
+                                   Text="Unlocking… this takes about a second on purpose, so guessing is slow." />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6">
+                <TextBlock Classes="dim" Text="New here?" VerticalAlignment="Center" />
+                <Button Classes="link" Content="Create a vault" Command="{Binding CreateNewCommand}" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,179 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lockbox.App.ViewModels"
+             x:Class="Lockbox.App.Views.VaultView"
+             x:DataType="vm:VaultViewModel">
+    <UserControl.KeyBindings>
+        <KeyBinding Gesture="Ctrl+N" Command="{Binding NewEntryCommand}" />
+        <KeyBinding Gesture="Ctrl+L" Command="{Binding LockCommand}" />
+        <KeyBinding Gesture="Ctrl+F" Command="{Binding FocusSearchCommand}" />
+        <KeyBinding Gesture="Ctrl+B" Command="{Binding CopySelectedUsernameCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+C" Command="{Binding CopySelectedPasswordCommand}" />
+        <KeyBinding Gesture="Ctrl+U" Command="{Binding OpenSelectedUrlCommand}" />
+    </UserControl.KeyBindings>
+
+    <Grid RowDefinitions="*,Auto">
+        <Grid ColumnDefinitions="340,*">
+            <!-- Sidebar -->
+            <Border Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*">
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" Margin="16,14,10,10">
+                        <Image Source="/Assets/lockbox.png" Width="26" Height="26" />
+                        <TextBlock Grid.Column="1" Classes="h3" Text="{Binding VaultName}" VerticalAlignment="Center" Margin="10,0,0,0"
+                                   TextTrimming="CharacterEllipsis" />
+                        <Button Grid.Column="2" Classes="icon" Command="{Binding OpenCheckupCommand}" ToolTip.Tip="Security check-up">
+                            <PathIcon Data="{StaticResource IconShield}" />
+                        </Button>
+                        <Button Grid.Column="3" Classes="icon" Command="{Binding OpenSettingsCommand}" ToolTip.Tip="Settings">
+                            <PathIcon Data="{StaticResource IconCog}" />
+                        </Button>
+                        <Button Grid.Column="4" Classes="icon" Command="{Binding LockCommand}" ToolTip.Tip="Lock now (Ctrl+L)">
+                            <PathIcon Data="{StaticResource IconLock}" />
+                        </Button>
+                    </Grid>
+
+                    <TextBox Grid.Row="1" Name="SearchBox" Margin="14,0,14,10" Text="{Binding Search}" PlaceholderText="Search (Ctrl+F)">
+                        <TextBox.InnerLeftContent>
+                            <PathIcon Data="{StaticResource IconSearch}" Margin="10,0,0,0" Foreground="{StaticResource TextDim}" />
+                        </TextBox.InnerLeftContent>
+                        <TextBox.KeyBindings>
+                            <KeyBinding Gesture="Escape" Command="{Binding ClearSearchCommand}" />
+                        </TextBox.KeyBindings>
+                    </TextBox>
+
+                    <Grid Grid.Row="2" ColumnDefinitions="*,*" Margin="14,0,14,10">
+                        <Button Classes="accent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" ToolTip.Tip="Ctrl+N for a new login">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="{StaticResource IconPlus}" />
+                                <TextBlock Text="New item" />
+                                <PathIcon Data="{StaticResource IconChevronDown}" Width="12" Height="12" />
+                            </StackPanel>
+                            <Button.Flyout>
+                                <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                                    <MenuItem Header="Login" Command="{Binding NewItemCommand}" CommandParameter="Login">
+                                        <MenuItem.Icon><PathIcon Data="{StaticResource IconKey}" /></MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Secure note" Command="{Binding NewItemCommand}" CommandParameter="SecureNote">
+                                        <MenuItem.Icon><PathIcon Data="{StaticResource IconNote}" /></MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Payment card" Command="{Binding NewItemCommand}" CommandParameter="Card">
+                                        <MenuItem.Icon><PathIcon Data="{StaticResource IconCard}" /></MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Wi-Fi network" Command="{Binding NewItemCommand}" CommandParameter="WiFi">
+                                        <MenuItem.Icon><PathIcon Data="{StaticResource IconWifi}" /></MenuItem.Icon>
+                                    </MenuItem>
+                                </MenuFlyout>
+                            </Button.Flyout>
+                        </Button>
+                        <Button Grid.Column="1" Margin="8,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                Command="{Binding OpenImportCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="{StaticResource IconImport}" />
+                                <TextBlock Text="Import .txt" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <ListBox Grid.Row="3" Classes="chips" Margin="12,0,12,8" ItemsSource="{x:Static vm:VaultViewModel.TypeFilters}"
+                             SelectedItem="{Binding TypeFilter}">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:TypeFilter">
+                                <TextBlock Text="{Binding Label}" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <ToggleButton Grid.Row="4" Margin="14,0,14,8" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                  IsChecked="{Binding OnlyNeedsAttention}" Background="{StaticResource WarnSoft}"
+                                  ToolTip.Tip="Weak, reused or empty passwords. Click to show only these."
+                                  IsVisible="{Binding HasAttention}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="{StaticResource IconAlert}" Foreground="{StaticResource WarnBrush}" Width="14" Height="14" />
+                            <TextBlock Foreground="{StaticResource WarnBrush}">
+                                <Run Text="{Binding AttentionCount}" />
+                                <Run Text=" items need attention" />
+                            </TextBlock>
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <ListBox Grid.Row="5" Name="EntryList" Classes="entries" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.KeyBindings>
+                            <KeyBinding Gesture="Enter" Command="{Binding CopySelectedPasswordCommand}" />
+                            <KeyBinding Gesture="Ctrl+C" Command="{Binding CopySelectedPasswordCommand}" />
+                            <KeyBinding Gesture="Delete" Command="{Binding DeleteSelectedCommand}" />
+                        </ListBox.KeyBindings>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:EntryItemViewModel">
+                                <Grid ColumnDefinitions="Auto,*,Auto" Background="Transparent">
+                                    <Grid.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Copy password / number"
+                                                      Command="{Binding $parent[ListBox].((vm:VaultViewModel)DataContext).CopyPasswordCommand}"
+                                                      CommandParameter="{Binding}" />
+                                            <MenuItem Header="Copy username / name"
+                                                      Command="{Binding $parent[ListBox].((vm:VaultViewModel)DataContext).CopyUsernameCommand}"
+                                                      CommandParameter="{Binding}" />
+                                        </ContextMenu>
+                                    </Grid.ContextMenu>
+                                    <Border Width="34" Height="34" CornerRadius="9" Background="{Binding AvatarBrush}">
+                                        <Panel>
+                                            <TextBlock Text="{Binding Initial}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       FontWeight="Bold" Foreground="White" IsVisible="{Binding ShowInitial}" />
+                                            <PathIcon Data="{Binding TypeIcon}" Foreground="White" Width="17" Height="17"
+                                                      IsVisible="{Binding !ShowInitial}" />
+                                        </Panel>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="12,0,6,0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Subtitle}" Classes="dim" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                        <PathIcon Data="{StaticResource IconAlert}" Foreground="{StaticResource WarnBrush}" Width="13" Height="13"
+                                                  IsVisible="{Binding NeedsAttention}" ToolTip.Tip="{Binding IssueText}" />
+                                        <PathIcon Data="{StaticResource IconLock}" Foreground="{StaticResource TextDim}" Width="12" Height="12"
+                                                  IsVisible="{Binding IsProtected}" ToolTip.Tip="Asks for your master password" />
+                                        <PathIcon Data="{StaticResource IconClip}" Foreground="{StaticResource TextDim}" Width="13" Height="13"
+                                                  IsVisible="{Binding HasAttachments}" ToolTip.Tip="Has attachments" />
+                                        <Border Classes="badge" IsVisible="{Binding HasTwoFactor}" ToolTip.Tip="2FA is on">
+                                            <TextBlock Text="2FA" />
+                                        </Border>
+                                        <PathIcon Data="{StaticResource IconKey}" Width="13" Height="13" Foreground="#9EC0FF"
+                                                  IsVisible="{Binding HasCodes}" ToolTip.Tip="Backup codes saved (sealed)" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <StackPanel Grid.Row="5" Margin="24,30" Spacing="8" IsVisible="{Binding IsEmpty}">
+                        <TextBlock Classes="h3" Text="Nothing here yet" HorizontalAlignment="Center" />
+                        <TextBlock Classes="dim" TextWrapping="Wrap" TextAlignment="Center"
+                                   Text="Add a login, note, card or Wi-Fi network with New item, or bring in your old text file with Import .txt." />
+                    </StackPanel>
+                    <TextBlock Grid.Row="5" Classes="dim" Margin="24,30" TextAlignment="Center" TextWrapping="Wrap"
+                               IsVisible="{Binding HasNoMatches}" Text="Nothing matches. Press Esc in the search box to clear filters." />
+                </Grid>
+            </Border>
+
+            <!-- Editor -->
+            <ContentControl Grid.Column="1" Content="{Binding Editor}" />
+            <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10"
+                        IsVisible="{Binding Editor, Converter={x:Static ObjectConverters.IsNull}}">
+                <PathIcon Data="{StaticResource IconShield}" Width="48" Height="48" Foreground="{StaticResource AccentSoft}" />
+                <TextBlock Classes="dim" Text="Select an item, or create a new one." HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Status bar -->
+        <Border Grid.Row="1" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="16,7">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Classes="dim" FontSize="12" Text="{Binding Status}" TextTrimming="CharacterEllipsis" />
+                <TextBlock Grid.Column="1" FontSize="12" Foreground="{StaticResource WarnBrush}" Text="{Binding Countdown}" />
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

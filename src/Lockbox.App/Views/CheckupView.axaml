@@ -1,0 +1,82 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lockbox.App.ViewModels"
+             x:Class="Lockbox.App.Views.CheckupView"
+             x:DataType="vm:CheckupViewModel">
+    <UserControl.Styles>
+        <Style Selector="Border.sev">
+            <Setter Property="Width" Value="4" />
+            <Setter Property="CornerRadius" Value="2" />
+            <Setter Property="Margin" Value="0,0,14,0" />
+        </Style>
+        <Style Selector="Border.sev.high"><Setter Property="Background" Value="#EF4444" /></Style>
+        <Style Selector="Border.sev.medium"><Setter Property="Background" Value="#F5B942" /></Style>
+        <Style Selector="Border.sev.low"><Setter Property="Background" Value="#4F8CFF" /></Style>
+    </UserControl.Styles>
+
+    <ScrollViewer>
+        <StackPanel Width="720" HorizontalAlignment="Center" Margin="24,24,24,40" Spacing="16">
+            <Grid ColumnDefinitions="Auto,*">
+                <Button Classes="icon" Command="{Binding BackCommand}" ToolTip.Tip="Back to vault">
+                    <PathIcon Data="{StaticResource IconBack}" />
+                </Button>
+                <TextBlock Grid.Column="1" Classes="h1" Text="Security check-up" Margin="8,0,0,0" VerticalAlignment="Center" />
+            </Grid>
+
+            <Border Classes="card">
+                <Grid ColumnDefinitions="Auto,*">
+                    <PathIcon Data="{StaticResource IconShield}" Width="40" Height="40" Foreground="#9EC0FF" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Classes="h2" Text="{Binding Headline}" />
+                        <TextBlock Classes="dim" TextWrapping="Wrap" Text="{Binding Summary}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <TextBlock Classes="dim" IsVisible="{Binding AllClear}" HorizontalAlignment="Center" Margin="0,20"
+                       Text="Nothing to fix. Every password is strong, unique and recent, and your logins have 2FA." TextWrapping="Wrap" />
+
+            <ItemsControl ItemsSource="{Binding Sections}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><StackPanel Spacing="14" /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:CheckupSection">
+                        <Border Classes="card" Padding="20">
+                            <Grid ColumnDefinitions="Auto,*">
+                                <Border Classes="sev" Classes.high="{Binding IsHigh}" Classes.medium="{Binding IsMedium}" Classes.low="{Binding IsLow}" />
+                                <StackPanel Grid.Column="1" Spacing="10">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Classes="h3" Text="{Binding Title}" FontSize="16" />
+                                        <Border Grid.Column="1" Classes="badge"><TextBlock Text="{Binding CountText}" FontSize="12" /></Border>
+                                    </Grid>
+                                    <TextBlock Classes="dim" TextWrapping="Wrap" Text="{Binding Why}" />
+                                    <ItemsControl ItemsSource="{Binding Items}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><StackPanel Spacing="4" /></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:CheckupItem">
+                                                <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Classes="ghost" Padding="10,6"
+                                                        Command="{Binding $parent[UserControl].((vm:CheckupViewModel)DataContext).OpenCommand}"
+                                                        CommandParameter="{Binding}">
+                                                    <Grid ColumnDefinitions="*,Auto">
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                                            <TextBlock Classes="dim" FontSize="12" Text="{Binding Subtitle}" />
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="1" Text="Fix →" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" />
+                                                    </Grid>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,11 @@
+bin/
+obj/
+publish/
+shots/
+*.user
+.vs/
+.idea/
+*.lbx
+*.lbxkey
+*.backups/
+lockbox-export*.csv

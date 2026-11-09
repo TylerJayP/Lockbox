@@ -1,0 +1,16 @@
+{
+  "LastVaultPath": "/tmp/lockbox-smoke-IEKFIp/Vault/Mine.lbx",
+  "LastKeyFilePath": null,
+  "RememberKeyFileLocation": false,
+  "HideFromScreenCapture": true,
+  "KnownVaults": {
+    "cbaa06f7-643e-43d1-8257-e0a90b32eb71": {
+      "Revision": 16,
+      "SavedUtc": "2026-11-09T21:11:24.1409393+00:00"
+    },
+    "843a7836-409a-4a3d-aa0c-c2ff58dd1966": {
+      "Revision": 16,
+      "SavedUtc": "2026-11-09T21:12:56.0454223+00:00"
+    }
+  }
+}

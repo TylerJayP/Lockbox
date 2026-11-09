@@ -1,0 +1,65 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lockbox.App.ViewModels"
+        x:Class="Lockbox.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="{Binding WindowTitle}"
+        Icon="/Assets/lockbox.ico"
+        Width="1140" Height="760" MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen">
+
+    <Panel>
+        <ContentControl Content="{Binding CurrentPage}" />
+
+        <!-- In-window dialog -->
+        <Panel IsVisible="{Binding Dialog, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <Border Background="#B8000000" />
+            <Border Classes="card" Width="500" MaxHeight="640" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    DataContext="{Binding Dialog}" x:DataType="vm:DialogViewModel" BoxShadow="0 20 60 0 #80000000">
+                <ScrollViewer>
+                    <StackPanel Spacing="14">
+                        <TextBlock Classes="h2" Text="{Binding Title}" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Classes="dim" LineHeight="21" />
+
+                        <StackPanel IsVisible="{Binding HasInput}">
+                            <TextBlock Classes="label" Text="{Binding InputLabel}" />
+                            <TextBox Name="DialogInput" Text="{Binding Input}" PasswordChar="•" Classes="revealPasswordButton">
+                                <TextBox.KeyBindings>
+                                    <KeyBinding Gesture="Enter" Command="{Binding SubmitCommand}" />
+                                </TextBox.KeyBindings>
+                            </TextBox>
+                        </StackPanel>
+                        <StackPanel IsVisible="{Binding HasConfirm}">
+                            <TextBlock Classes="label" Text="{Binding ConfirmLabel}" />
+                            <TextBox Text="{Binding ConfirmInput}" PasswordChar="•" Classes="revealPasswordButton">
+                                <TextBox.KeyBindings>
+                                    <KeyBinding Gesture="Enter" Command="{Binding SubmitCommand}" />
+                                </TextBox.KeyBindings>
+                            </TextBox>
+                        </StackPanel>
+
+                        <TextBlock Classes="error" Text="{Binding Error}"
+                                   IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+                        <ItemsControl ItemsSource="{Binding Buttons}" HorizontalAlignment="Right" Margin="0,6,0,0">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="8" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:DialogButton">
+                                    <Button Content="{Binding Label}"
+                                            Command="{Binding $parent[ItemsControl].((vm:DialogViewModel)DataContext).PressCommand}"
+                                            CommandParameter="{Binding}"
+                                            Classes.accent="{Binding IsPrimary}"
+                                            Classes.dangerSolid="{Binding IsDanger}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Panel>
+    </Panel>
+</Window>

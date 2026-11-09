@@ -1,0 +1,451 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lockbox.App.ViewModels"
+             x:Class="Lockbox.App.Views.EntryEditorView"
+             x:DataType="vm:EntryEditorViewModel">
+    <UserControl.KeyBindings>
+        <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}" />
+    </UserControl.KeyBindings>
+
+    <Grid RowDefinitions="*,Auto">
+        <ScrollViewer>
+            <StackPanel MaxWidth="780" Margin="32,22,32,24" Spacing="16">
+                <!-- Header -->
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Border Width="40" Height="40" CornerRadius="10" Background="{StaticResource AccentSoft}" VerticalAlignment="Center">
+                        <PathIcon Data="{Binding TypeIcon}" Foreground="#9EC0FF" Width="20" Height="20" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                        <TextBlock Classes="dim" FontSize="11" Text="{Binding TypeLabel}" Margin="5,0,0,0" />
+                        <TextBox Name="TitleBox" Text="{Binding Title}" FontSize="22" FontWeight="SemiBold" PlaceholderText="Name"
+                                 Background="Transparent" BorderThickness="0" Padding="4,2" IsReadOnly="{Binding IsSealed}" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Classes="icon danger" Command="{Binding DeleteCommand}" ToolTip.Tip="Delete this item"
+                            VerticalAlignment="Center" IsVisible="{Binding IsOpen}">
+                        <PathIcon Data="{StaticResource IconTrash}" />
+                    </Button>
+                </Grid>
+
+                <!-- Protected item cover -->
+                <Border Classes="card" IsVisible="{Binding IsSealed}" Padding="28">
+                    <StackPanel Spacing="12" HorizontalAlignment="Center">
+                        <PathIcon Data="{StaticResource IconLock}" Width="36" Height="36" Foreground="#9EC0FF" HorizontalAlignment="Center" />
+                        <TextBlock Classes="h2" Text="This item is protected" HorizontalAlignment="Center" />
+                        <TextBlock Classes="dim" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="420"
+                                   Text="It asks for your master password before showing or copying anything, so someone at your unlocked computer still can't see it." />
+                        <Button Classes="accent" HorizontalAlignment="Center" Command="{Binding UnlockCommand}" Padding="18,9">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <PathIcon Data="{StaticResource IconLock}" />
+                                <TextBlock Text="Enter master password" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Spacing="16" IsVisible="{Binding IsOpen}">
+                <Border Classes="notice" IsVisible="{Binding HasIssue}">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <PathIcon Data="{StaticResource IconAlert}" Foreground="{StaticResource WarnBrush}" />
+                        <TextBlock Classes="warn" Text="{Binding IssueText}" MaxWidth="640" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Secure note body -->
+                <Border Classes="card" Padding="20" IsVisible="{Binding IsNote}">
+                    <StackPanel>
+                        <TextBlock Classes="label" Text="Note" />
+                        <TextBox Classes="multi" MinHeight="240" Text="{Binding Notes}" PlaceholderText="Anything you want kept private: combinations, answers, instructions…" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Login / Wi-Fi credentials -->
+                <Border Classes="card" Padding="20" IsVisible="{Binding HasPasswordField}">
+                    <StackPanel Spacing="14">
+                        <StackPanel IsVisible="{Binding IsLogin}">
+                            <TextBlock Classes="label" Text="Username or email" />
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBox Text="{Binding Username}" />
+                                <Button Grid.Column="1" Classes="icon" Margin="4,0,0,0" Command="{Binding CopyUsernameCommand}" ToolTip.Tip="Copy username (Ctrl+B)">
+                                    <PathIcon Data="{StaticResource IconCopy}" />
+                                </Button>
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel IsVisible="{Binding IsWifi}">
+                            <TextBlock Classes="label" Text="Network name (SSID)" />
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBox Text="{Binding NetworkName}" />
+                                <Button Grid.Column="1" Classes="icon" Margin="4,0,0,0" Command="{Binding CopyNetworkNameCommand}" ToolTip.Tip="Copy network name">
+                                    <PathIcon Data="{StaticResource IconCopy}" />
+                                </Button>
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="label" Text="{Binding PasswordLabel}" Margin="0" />
+                            <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+                                <TextBox Classes="mono" Text="{Binding Password}" PasswordChar="•" RevealPassword="{Binding RevealPassword}" />
+                                <Button Grid.Column="1" Classes="icon" Margin="4,0,0,0" Command="{Binding ToggleRevealCommand}" ToolTip.Tip="Show / hide">
+                                    <PathIcon Data="{StaticResource IconEye}" />
+                                </Button>
+                                <Button Grid.Column="2" Classes="icon" Command="{Binding CopyPasswordCommand}" ToolTip.Tip="Copy password (clears automatically)">
+                                    <PathIcon Data="{StaticResource IconCopy}" />
+                                </Button>
+                                <Button Grid.Column="3" Classes="icon" Command="{Binding ToggleGeneratorCommand}" ToolTip.Tip="Generate a password">
+                                    <PathIcon Data="{StaticResource IconRefresh}" />
+                                </Button>
+                            </Grid>
+                            <ProgressBar Classes="strength" Value="{Binding StrengthValue}" Foreground="{Binding StrengthBrush}" />
+                            <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap" Text="{Binding StrengthText}" />
+                            <Button Classes="link" FontSize="12" HorizontalAlignment="Left" Content="{Binding HistoryToggleText}"
+                                    Command="{Binding ToggleHistoryCommand}" IsVisible="{Binding HasHistory}" />
+
+                            <!-- Password history -->
+                            <Border Classes="section" IsVisible="{Binding HistoryOpen}" Margin="0,2,0,0">
+                                <StackPanel Spacing="8">
+                                    <Grid ColumnDefinitions="*,Auto,Auto">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Previous passwords" FontWeight="SemiBold" />
+                                            <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap"
+                                                       Text="Kept each time you save a new password, in case a site's password change didn't go through." />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Classes="icon" Command="{Binding ToggleHistoryRevealCommand}" ToolTip.Tip="Show / hide old passwords" VerticalAlignment="Top">
+                                            <PathIcon Data="{StaticResource IconEye}" />
+                                        </Button>
+                                        <Button Grid.Column="2" Classes="ghost danger" FontSize="12" Content="Clear history" Command="{Binding ClearHistoryCommand}" VerticalAlignment="Top" />
+                                    </Grid>
+                                    <ItemsControl ItemsSource="{Binding History}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><StackPanel Spacing="2" /></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:HistoryRowViewModel">
+                                                <Border Background="{StaticResource Bg}" CornerRadius="6" Padding="10,4">
+                                                    <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+                                                        <TextBlock Classes="mono" Text="{Binding Display}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Grid.Column="1" Classes="dim" FontSize="12" Text="{Binding WhenText}" VerticalAlignment="Center" Margin="12,0" />
+                                                        <Button Grid.Column="2" Classes="icon" ToolTip.Tip="Copy this old password"
+                                                                Command="{Binding $parent[ItemsControl].((vm:EntryEditorViewModel)DataContext).CopyOldPasswordCommand}"
+                                                                CommandParameter="{Binding}">
+                                                            <PathIcon Data="{StaticResource IconCopy}" />
+                                                        </Button>
+                                                        <Button Grid.Column="3" Classes="ghost" FontSize="12" Content="Use again" ToolTip.Tip="Make this the current password again"
+                                                                Command="{Binding $parent[ItemsControl].((vm:EntryEditorViewModel)DataContext).RestoreOldPasswordCommand}"
+                                                                CommandParameter="{Binding}" />
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Generator -->
+                            <Border Classes="section" IsVisible="{Binding GeneratorOpen}" Margin="0,4,0,0">
+                                <StackPanel Spacing="12">
+                                    <StackPanel Orientation="Horizontal" Spacing="16">
+                                        <RadioButton Content="Random characters" IsChecked="{Binding GenRandom}" GroupName="gen" />
+                                        <RadioButton Content="Words (passphrase)" IsChecked="{Binding GenPassphrase}" GroupName="gen" />
+                                    </StackPanel>
+                                    <StackPanel IsVisible="{Binding !GenPassphrase}" Spacing="8">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <TextBlock Text="Length" VerticalAlignment="Center" Classes="dim" />
+                                            <Slider Grid.Column="1" Minimum="8" Maximum="64" Value="{Binding GenLength}" Margin="12,0"
+                                                    IsSnapToTickEnabled="True" TickFrequency="1" />
+                                            <TextBlock Grid.Column="2" Text="{Binding GenLength}" VerticalAlignment="Center" Width="24" />
+                                        </Grid>
+                                        <WrapPanel>
+                                            <CheckBox Content="A–Z" IsChecked="{Binding GenUpper}" Margin="0,0,16,0" />
+                                            <CheckBox Content="a–z" IsChecked="{Binding GenLower}" Margin="0,0,16,0" />
+                                            <CheckBox Content="0–9" IsChecked="{Binding GenDigits}" Margin="0,0,16,0" />
+                                            <CheckBox Content="!@#$" IsChecked="{Binding GenSymbols}" Margin="0,0,16,0" />
+                                            <CheckBox Content="Avoid look-alikes (l, 1, O, 0)" IsChecked="{Binding GenNoAmbiguous}" />
+                                        </WrapPanel>
+                                    </StackPanel>
+                                    <Grid ColumnDefinitions="Auto,*,Auto" IsVisible="{Binding GenPassphrase}">
+                                        <TextBlock Text="Words" VerticalAlignment="Center" Classes="dim" />
+                                        <Slider Grid.Column="1" Minimum="4" Maximum="10" Value="{Binding GenWords}" Margin="12,0"
+                                                IsSnapToTickEnabled="True" TickFrequency="1" />
+                                        <TextBlock Grid.Column="2" Text="{Binding GenWords}" VerticalAlignment="Center" Width="24" />
+                                    </Grid>
+                                    <Border Background="{StaticResource Bg}" CornerRadius="8" Padding="12,10">
+                                        <SelectableTextBlock Classes="mono" Text="{Binding GenPreview}" FontSize="15" TextWrapping="Wrap" />
+                                    </Border>
+                                    <Grid ColumnDefinitions="*,Auto,Auto">
+                                        <TextBlock Classes="dim" FontSize="12" Text="{Binding GenInfo}" VerticalAlignment="Center" />
+                                        <Button Grid.Column="1" Command="{Binding RegeneratePreviewCommand}" Margin="0,0,8,0">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <PathIcon Data="{StaticResource IconRefresh}" />
+                                                <TextBlock Text="Another" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Grid.Column="2" Classes="accent" Content="Use this password" Command="{Binding UseGeneratedCommand}" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+
+                        <StackPanel IsVisible="{Binding IsLogin}">
+                            <TextBlock Classes="label" Text="Website" />
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBox Text="{Binding Url}" PlaceholderText="https://…" />
+                                <Button Grid.Column="1" Classes="icon" Margin="4,0,0,0" Command="{Binding OpenUrlCommand}"
+                                        IsEnabled="{Binding HasUrl}" ToolTip.Tip="Open in browser (Ctrl+U)">
+                                    <PathIcon Data="{StaticResource IconOpen}" />
+                                </Button>
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel IsVisible="{Binding IsWifi}" Spacing="12">
+                            <Grid ColumnDefinitions="Auto,*">
+                                <StackPanel>
+                                    <TextBlock Classes="label" Text="Security" />
+                                    <ComboBox Width="200" ItemsSource="{x:Static vm:EntryEditorViewModel.WifiSecurityOptions}"
+                                              SelectedItem="{Binding WifiSecurity}" />
+                                </StackPanel>
+                                <CheckBox Grid.Column="1" Margin="20,18,0,0" Content="Hidden network (doesn't broadcast its name)" IsChecked="{Binding HiddenNetwork}" />
+                            </Grid>
+                            <Button HorizontalAlignment="Left" Command="{Binding ToggleWifiQrCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <PathIcon Data="{StaticResource IconQr}" />
+                                    <TextBlock Text="Show / hide QR code for guests" />
+                                </StackPanel>
+                            </Button>
+                            <StackPanel IsVisible="{Binding HasWifiQr}" Spacing="6" HorizontalAlignment="Left">
+                                <Border Background="White" CornerRadius="10" Padding="10">
+                                    <Image Source="{Binding WifiQr}" Width="220" Height="220" RenderOptions.BitmapInterpolationMode="None" />
+                                </Border>
+                                <TextBlock Classes="dim" FontSize="12" MaxWidth="260" TextWrapping="Wrap"
+                                           Text="Point a phone camera at this to join. It contains the password, so hide it when you're done." />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Payment card -->
+                <Border Classes="card" Padding="20" IsVisible="{Binding IsCard}">
+                    <StackPanel Spacing="14">
+                        <StackPanel>
+                            <TextBlock Classes="label" Text="Name on card" />
+                            <TextBox Text="{Binding CardholderName}" />
+                        </StackPanel>
+                        <StackPanel Spacing="5">
+                            <TextBlock Classes="label" Text="Card number" Margin="0" />
+                            <Grid ColumnDefinitions="*,Auto,Auto">
+                                <TextBox Classes="mono" Text="{Binding CardNumber}" PasswordChar="•" RevealPassword="{Binding RevealCard}" />
+                                <Button Grid.Column="1" Classes="icon" Margin="4,0,0,0" Command="{Binding ToggleRevealCardCommand}" ToolTip.Tip="Show / hide card details">
+                                    <PathIcon Data="{StaticResource IconEye}" />
+                                </Button>
+                                <Button Grid.Column="2" Classes="icon" Command="{Binding CopyCardNumberCommand}" ToolTip.Tip="Copy card number">
+                                    <PathIcon Data="{StaticResource IconCopy}" />
+                                </Button>
+                            </Grid>
+                            <TextBlock Classes="dim" FontSize="12" Text="{Binding CardHint}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Grid ColumnDefinitions="*,*,*">
+                            <StackPanel>
+                                <TextBlock Classes="label" Text="Expires (MM/YY)" />
+                                <TextBox Text="{Binding CardExpiry}" PlaceholderText="08/29" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="10,0">
+                                <TextBlock Classes="label" Text="Security code" />
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBox Classes="mono" Text="{Binding CardCode}" PasswordChar="•" RevealPassword="{Binding RevealCard}" />
+                                    <Button Grid.Column="1" Classes="icon" Command="{Binding CopyCardCodeCommand}" ToolTip.Tip="Copy security code">
+                                        <PathIcon Data="{StaticResource IconCopy}" />
+                                    </Button>
+                                </Grid>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Classes="label" Text="PIN" />
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBox Classes="mono" Text="{Binding CardPin}" PasswordChar="•" RevealPassword="{Binding RevealCard}" />
+                                    <Button Grid.Column="1" Classes="icon" Command="{Binding CopyCardPinCommand}" ToolTip.Tip="Copy PIN">
+                                        <PathIcon Data="{StaticResource IconCopy}" />
+                                    </Button>
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Two-factor -->
+                <Border Classes="card" Padding="20" IsVisible="{Binding IsLogin}">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <CheckBox IsChecked="{Binding TwoFactorEnabled}">
+                                <StackPanel>
+                                    <TextBlock Text="Two-factor authentication is on" FontWeight="SemiBold" />
+                                    <TextBlock Classes="dim" FontSize="12" Text="Tick this when the account asks for a code after the password." />
+                                </StackPanel>
+                            </CheckBox>
+                            <ComboBox Grid.Column="1" Width="210" VerticalAlignment="Center"
+                                      ItemsSource="{x:Static vm:EntryEditorViewModel.TwoFactorOptions}"
+                                      SelectedItem="{Binding TwoFactorMethod}" IsEnabled="{Binding TwoFactorEnabled}" />
+                        </Grid>
+
+                        <Border Classes="section" IsVisible="{Binding CodesLocked}">
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <PathIcon Data="{StaticResource IconLock}" Foreground="#9EC0FF" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
+                                    <TextBlock Text="Backup codes" FontWeight="SemiBold" />
+                                    <TextBlock Classes="dim" FontSize="12" Text="{Binding CodesLockedText}" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <Button Grid.Column="2" Content="{Binding UnlockCodesLabel}" Command="{Binding UnlockCodesCommand}" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+
+                        <StackPanel IsVisible="{Binding CodesUnlocked}" Spacing="6" Margin="0,6,0,0">
+                            <Grid ColumnDefinitions="*,Auto,Auto">
+                                <StackPanel>
+                                    <TextBlock Text="Backup codes" FontWeight="SemiBold" />
+                                    <TextBlock Classes="dim" FontSize="12" Text="Paste them here, one per line. They're sealed with your recovery passphrase and lock again after 3 minutes." TextWrapping="Wrap" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Classes="icon" Command="{Binding CopyCodesCommand}" ToolTip.Tip="Copy all codes" VerticalAlignment="Top">
+                                    <PathIcon Data="{StaticResource IconCopy}" />
+                                </Button>
+                                <Button Grid.Column="2" Classes="icon" Command="{Binding LockCodesCommand}" ToolTip.Tip="Lock codes now" VerticalAlignment="Top">
+                                    <PathIcon Data="{StaticResource IconLock}" />
+                                </Button>
+                            </Grid>
+                            <TextBox Classes="multi mono" MinHeight="110" Text="{Binding BackupCodes}" PlaceholderText="1234 5678&#10;2345 6789&#10;…" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Custom fields -->
+                <Border Classes="card" Padding="20">
+                    <StackPanel Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel>
+                                <TextBlock Text="Custom fields" FontWeight="SemiBold" />
+                                <TextBlock Classes="dim" FontSize="12" Text="Account numbers, security questions, anything else. Tick Hide to mask a value like a password." TextWrapping="Wrap" />
+                            </StackPanel>
+                            <Button Grid.Column="1" VerticalAlignment="Top" Command="{Binding AddFieldCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <PathIcon Data="{StaticResource IconPlus}" />
+                                    <TextBlock Text="Add field" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                        <ItemsControl ItemsSource="{Binding Fields}" IsVisible="{Binding HasFields}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><StackPanel Spacing="6" /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:CustomFieldRowViewModel">
+                                    <Grid ColumnDefinitions="200,*,Auto,Auto,Auto,Auto">
+                                        <TextBox Text="{Binding Name}" PlaceholderText="Label" />
+                                        <TextBox Grid.Column="1" Margin="8,0,0,0" Text="{Binding Value}" PlaceholderText="Value"
+                                                 PasswordChar="•" RevealPassword="{Binding ShowPlain}" />
+                                        <Button Grid.Column="2" Classes="icon" Margin="4,0,0,0" Command="{Binding ToggleRevealCommand}"
+                                                IsVisible="{Binding Hidden}" ToolTip.Tip="Show / hide">
+                                            <PathIcon Data="{StaticResource IconEye}" />
+                                        </Button>
+                                        <Button Grid.Column="3" Classes="icon" ToolTip.Tip="Copy value"
+                                                Command="{Binding $parent[ItemsControl].((vm:EntryEditorViewModel)DataContext).CopyFieldCommand}"
+                                                CommandParameter="{Binding}">
+                                            <PathIcon Data="{StaticResource IconCopy}" />
+                                        </Button>
+                                        <CheckBox Grid.Column="4" Content="Hide" IsChecked="{Binding Hidden}" Margin="6,0,0,0" />
+                                        <Button Grid.Column="5" Classes="icon danger" ToolTip.Tip="Remove field"
+                                                Command="{Binding $parent[ItemsControl].((vm:EntryEditorViewModel)DataContext).RemoveFieldCommand}"
+                                                CommandParameter="{Binding}">
+                                            <PathIcon Data="{StaticResource IconClose}" />
+                                        </Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <!-- Attachments -->
+                <Border Classes="card" Padding="20">
+                    <StackPanel Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel>
+                                <TextBlock Text="Attachments" FontWeight="SemiBold" />
+                                <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap"
+                                           Text="Recovery kits, scanned documents, key files. Encrypted inside the vault, up to 20 MB each." />
+                            </StackPanel>
+                            <Button Grid.Column="1" VerticalAlignment="Top" Command="{Binding AddAttachmentCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <PathIcon Data="{StaticResource IconClip}" />
+                                    <TextBlock Text="Add file…" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                        <ItemsControl ItemsSource="{Binding Attachments}" IsVisible="{Binding HasAttachments}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><StackPanel Spacing="4" /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:AttachmentRowViewModel">
+                                    <Border Background="{StaticResource Bg}" CornerRadius="6" Padding="10,6">
+                                        <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                                            <PathIcon Data="{StaticResource IconClip}" Foreground="{StaticResource TextDim}" VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="1" Margin="10,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Classes="dim" FontSize="12" Text="{Binding Details}" />
+                                            </StackPanel>
+                                            <Button Grid.Column="2" Classes="ghost" FontSize="12" ToolTip.Tip="Save a copy to disk (not encrypted)"
+                                                    Command="{Binding $parent[ItemsControl].((vm:EntryEditorViewModel)DataContext).SaveAttachmentCommand}"
+                                                    CommandParameter="{Binding}">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <PathIcon Data="{StaticResource IconSave}" Width="14" Height="14" />
+                                                    <TextBlock Text="Save copy…" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Grid.Column="3" Classes="icon danger" ToolTip.Tip="Remove from vault"
+                                                    Command="{Binding $parent[ItemsControl].((vm:EntryEditorViewModel)DataContext).RemoveAttachmentCommand}"
+                                                    CommandParameter="{Binding}">
+                                                <PathIcon Data="{StaticResource IconTrash}" />
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <!-- Notes, tags, protection -->
+                <Border Classes="card" Padding="20">
+                    <StackPanel Spacing="14">
+                        <StackPanel IsVisible="{Binding IsNotNote}">
+                            <TextBlock Classes="label" Text="Notes" />
+                            <TextBox Classes="multi" MinHeight="80" Text="{Binding Notes}" PlaceholderText="Anything else worth remembering" />
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Classes="label" Text="Tags (comma separated)" />
+                            <TextBox Text="{Binding Tags}" PlaceholderText="e.g. games, school, banking" />
+                        </StackPanel>
+                        <CheckBox IsChecked="{Binding Reprompt}">
+                            <StackPanel>
+                                <TextBlock Text="Ask for my master password before showing this item" />
+                                <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap"
+                                           Text="Good for email, banking and cards: someone at your unlocked computer still can't view or copy it." />
+                            </StackPanel>
+                        </CheckBox>
+                    </StackPanel>
+                </Border>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Save bar -->
+        <Border Grid.Row="1" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="32,10" IsVisible="{Binding IsOpen}">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+                    <TextBlock Classes="dim" FontSize="12" Text="{Binding CreatedText}" />
+                    <TextBlock Classes="dim" FontSize="12" Text="{Binding PasswordAgeText}" />
+                    <TextBlock FontSize="12" Foreground="{StaticResource WarnBrush}" Text="Unsaved changes" IsVisible="{Binding IsDirty}" />
+                </StackPanel>
+                <Button Grid.Column="1" Classes="ghost" Content="Revert" Command="{Binding RevertCommand}" IsEnabled="{Binding IsDirty}" Margin="0,0,8,0" />
+                <Button Grid.Column="2" Classes="accent" Content="Save  (Ctrl+S)" Command="{Binding SaveCommand}" IsEnabled="{Binding IsDirty}" />
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

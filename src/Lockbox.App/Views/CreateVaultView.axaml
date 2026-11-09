@@ -1,0 +1,136 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lockbox.App.ViewModels"
+             x:Class="Lockbox.App.Views.CreateVaultView"
+             x:DataType="vm:CreateVaultViewModel">
+    <UserControl.Styles>
+        <Style Selector="Border.step">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Background" Value="{StaticResource AccentSoft}" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+        <Style Selector="Border.step > TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="#9EC0FF" />
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer>
+        <StackPanel Width="640" HorizontalAlignment="Center" Margin="24,32" Spacing="18">
+            <Grid ColumnDefinitions="Auto,*">
+                <Button Classes="icon" Command="{Binding BackCommand}" ToolTip.Tip="Back">
+                    <PathIcon Data="{StaticResource IconBack}" />
+                </Button>
+                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                    <TextBlock Classes="h1" Text="Create a vault" />
+                    <TextBlock Classes="dim" Text="Takes about a minute. Read each step; there's no reset button later." TextWrapping="Wrap" />
+                </StackPanel>
+            </Grid>
+
+            <!-- 1 -->
+            <Border Classes="card">
+                <Grid ColumnDefinitions="Auto,*">
+                    <Border Classes="step"><TextBlock Text="1" /></Border>
+                    <StackPanel Grid.Column="1" Margin="14,0,0,0" Spacing="10">
+                        <TextBlock Classes="h3" Text="Where to keep the vault" />
+                        <TextBlock Classes="dim" TextWrapping="Wrap"
+                                   Text="Any folder works, even a synced one like OneDrive or Google Drive. The file is encrypted, so it's useless to anyone without your password and key file." />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBox Text="{Binding VaultPath}" PlaceholderText="e.g. Documents\MyVault.lbx" IsReadOnly="True" />
+                            <Button Grid.Column="1" Margin="8,0,0,0" Content="Choose…" Command="{Binding BrowseVaultCommand}" />
+                        </Grid>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- 2 -->
+            <Border Classes="card">
+                <Grid ColumnDefinitions="Auto,*">
+                    <Border Classes="step"><TextBlock Text="2" /></Border>
+                    <StackPanel Grid.Column="1" Margin="14,0,0,0" Spacing="10">
+                        <TextBlock Classes="h3" Text="Master password" />
+                        <TextBlock Classes="dim" TextWrapping="Wrap"
+                                   Text="The one password you'll remember. A passphrase of six random words is both strong and memorable. Lockbox can't reset it for you." />
+                        <TextBox Text="{Binding Password}" PasswordChar="•" RevealPassword="{Binding RevealPassword}"
+                                 Classes="revealPasswordButton mono" PlaceholderText="Master password" />
+                        <ProgressBar Classes="strength" Value="{Binding StrengthValue}" Foreground="{Binding StrengthBrush}" />
+                        <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap" Text="{Binding StrengthText}"
+                                   IsVisible="{Binding StrengthText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        <TextBox Text="{Binding ConfirmPassword}" PasswordChar="•" RevealPassword="{Binding RevealPassword}"
+                                 Classes="revealPasswordButton mono" PlaceholderText="Type it again" />
+                        <Button Command="{Binding GeneratePassphraseCommand}" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <PathIcon Data="{StaticResource IconRefresh}" />
+                                <TextBlock Text="Generate a passphrase for me" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- 3 -->
+            <Border Classes="card">
+                <Grid ColumnDefinitions="Auto,*">
+                    <Border Classes="step"><TextBlock Text="3" /></Border>
+                    <StackPanel Grid.Column="1" Margin="14,0,0,0" Spacing="10">
+                        <TextBlock Classes="h3" Text="Key file" />
+                        <TextBlock Classes="dim" TextWrapping="Wrap"
+                                   Text="A small file that works like a physical key: you need it AND your password to unlock. Keep it somewhere other than the vault. A USB stick is ideal." />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBox Text="{Binding KeyFilePath}" PlaceholderText="e.g. E:\MyVault.lbxkey" IsReadOnly="True" />
+                            <Button Grid.Column="1" Margin="8,0,0,0" Content="Choose…" Command="{Binding BrowseKeyFileCommand}" />
+                        </Grid>
+                        <Border Classes="notice" IsVisible="{Binding HasSameFolderWarning}">
+                            <TextBlock Classes="warn" Text="{Binding SameFolderWarning}" />
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- 4 -->
+            <Border Classes="card">
+                <Grid ColumnDefinitions="Auto,*">
+                    <Border Classes="step"><TextBlock Text="4" /></Border>
+                    <StackPanel Grid.Column="1" Margin="14,0,0,0" Spacing="10">
+                        <TextBlock Classes="h3" Text="Emergency sheet" />
+                        <TextBlock Classes="dim" TextWrapping="Wrap"
+                                   Text="If the key file is ever lost, you can type this key in instead. Save the sheet, print it, keep the paper somewhere safe, then delete the file." />
+                        <Border Classes="section">
+                            <SelectableTextBlock Classes="mono" Text="{Binding KeyPreview}" FontSize="15" LineHeight="24" />
+                        </Border>
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Button Content="Save emergency sheet…" Command="{Binding SaveEmergencySheetCommand}" />
+                            <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding EmergencySheetSaved}" VerticalAlignment="Center">
+                                <PathIcon Data="{StaticResource IconShield}" Foreground="{StaticResource OkBrush}" />
+                                <TextBlock Text="Saved. Now print it." Foreground="{StaticResource OkBrush}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel Spacing="14">
+                    <CheckBox IsChecked="{Binding UnderstandsNoRecovery}">
+                        <TextBlock TextWrapping="Wrap"
+                                   Text="I understand: if I forget my master password, or lose both my key file and the emergency sheet, nobody can open this vault, including me." />
+                    </CheckBox>
+                    <TextBlock Classes="error" Text="{Binding Error}"
+                               IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <Button Classes="accent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="14,10"
+                            Command="{Binding CreateCommand}">
+                        <TextBlock Text="Create vault" FontWeight="SemiBold" />
+                    </Button>
+                    <StackPanel Spacing="6" IsVisible="{Binding IsBusy}">
+                        <ProgressBar IsIndeterminate="True" />
+                        <TextBlock Classes="dim" FontSize="12" HorizontalAlignment="Center" Text="{Binding BusyText}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
