@@ -77,6 +77,12 @@ What comes across:
 
 Every type can also have **custom fields** (tick *Hide* to mask one like a password), **attachments** (up to 20 MB each, encrypted inside the vault) and **tags**.
 
+## Browser extension
+
+The Lockbox extension for Chrome, Edge, Brave and Firefox fills logins from a lock button in sign-in boxes or from the toolbar, offers to save new and changed passwords, and generates passwords on sign-up pages. Turn it on in *Settings → Browser extension*, add the extension to your browser and click **Connect**; Lockbox asks you to allow it, with a matching code.
+
+It only ever talks to Lockbox on your own computer, only offers a site's own logins (look-alike sites get nothing), and asks before saving anything. [BROWSER.md](BROWSER.md) has the full setup and how it works.
+
 ## Auto-type (Windows)
 
 Auto-type types a login for you, so the password never touches the clipboard. Turn it on in *Settings → Auto-type*.
@@ -153,6 +159,7 @@ The first time you save after unlocking, Lockbox copies the previous version of 
 | Esc (in search) | Clear search and filters |
 | Ctrl+L | Lock now |
 | Ctrl+Alt+A (anywhere) | Auto-type into the active window, if turned on |
+| Ctrl+Shift+L (in your browser) | Fill the login for this site with the Lockbox extension |
 
 ## Settings worth knowing
 
@@ -160,6 +167,7 @@ The first time you save after unlocking, Lockbox copies the previous version of 
 - **Clear copied passwords** after 20 seconds (adjustable).
 - **Hide from screenshots and screen sharing:** on by default.
 - **Show full usernames in the item list:** off by default, so the list shows `ty•••@example.com`.
+- **Browser extension:** off until you turn it on. The browsers you've connected are listed there, each with a **Disconnect** button.
 - **Auto-type** with Ctrl+Alt+A: off until you turn it on.
 - **Check for updates** when Lockbox starts: on by default, and the only time Lockbox goes online.
 - **Change master password**, optionally with a brand-new key file.

@@ -1,4 +1,4 @@
-# GitHub's code scanning: looks for security problems in the C# code on every push to main,
+# GitHub's code scanning: looks for security problems in the C# code and the browser extension's JavaScript on every push to main,
 # every pull request, and once a week (new checks get added over time).
 name: CodeQL
 
@@ -15,8 +15,16 @@ permissions:
 
 jobs:
   analyze:
-    name: Analyze C#
+    name: Analyze ${{ matrix.name }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: csharp
+            name: C#
+          - language: javascript-typescript
+            name: JavaScript (browser extension)
     permissions:
       security-events: write
       contents: read
@@ -25,9 +33,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: github/codeql-action/init@v3
         with:
-          languages: csharp
+          languages: ${{ matrix.language }}
           build-mode: none
           queries: security-and-quality
       - uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:csharp"
+          category: "/language:${{ matrix.language }}"

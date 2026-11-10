@@ -35,3 +35,21 @@ jobs:
       - name: Windows app publishes
         if: runner.os == 'Windows'
         run: dotnet publish src/Lockbox.App -c Release -r win-x64 --self-contained -o publish/ci -p:DebugType=none
+
+  extension:
+    name: Browser extension packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Scripts parse
+        run: for f in $(find extension -name '*.js'); do node --check "$f"; done
+      - name: Package for the stores
+        run: dotnet run --project tools/Lockbox.Release -- extension --out ext
+      - name: Firefox add-on passes Mozilla's checks
+        run: npx --yes addons-linter@10 ext/lockbox-extension-firefox-*.zip

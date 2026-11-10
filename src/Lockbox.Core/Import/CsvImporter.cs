@@ -280,14 +280,9 @@ public static partial class CsvImporter
     /// </summary>
     public static string SiteKey(string url)
     {
-        string host = Host(url);
-        if (host.Length == 0 || IPv4Rx().IsMatch(host) || !host.Contains('.')) return host;
-        var labels = host.Split('.');
-        int keep = labels.Length >= 3 && labels[^1].Length == 2 && SecondLevel.Contains(labels[^2]) ? 3 : 2;
-        return string.Join('.', labels[^Math.Min(keep, labels.Length)..]);
+        if (url.Trim().StartsWith("android://", StringComparison.OrdinalIgnoreCase)) return Host(url);
+        return Web.WebSite.SiteOf(url);
     }
-
-    private static readonly HashSet<string> SecondLevel = ["co", "com", "org", "net", "ac", "gov", "edu", "ne", "or"];
 
     private static string Host(string url)
     {
@@ -403,5 +398,4 @@ public static partial class CsvImporter
 
     [GeneratedRegex(@"(?:^|\n)\s*Backup codes:\s*\n([\s\S]+)$", RegexOptions.IgnoreCase)] private static partial Regex BackupCodesRx();
     [GeneratedRegex(@"pass|pin|secret|key|code|answer|token|cvv|cvc", RegexOptions.IgnoreCase)] private static partial Regex SecretNameRx();
-    [GeneratedRegex(@"^\d{1,3}(\.\d{1,3}){3}$")] private static partial Regex IPv4Rx();
 }

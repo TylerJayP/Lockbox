@@ -36,6 +36,7 @@ internal static partial class Cli
             {
                 "keygen" => Keygen(opts),
                 "release" => await ReleaseAsync(opts),
+                "extension" => PackExtension(opts),
                 _ => Usage(),
             };
         }
@@ -66,6 +67,11 @@ internal static partial class Cli
                   --dry-run does everything except publish to GitHub (output in ./Releases).
                   The token needs "Contents: read and write" on the repo. It can also come from
                   LOCKBOX_GITHUB_TOKEN, GITHUB_TOKEN or GH_TOKEN, or `gh auth token`.
+
+              extension [--out <folder>]
+                  Package the browser extension (default folder: ./Releases/extension): a .zip to load unpacked
+                  (also attached to every release), one for the Chrome Web Store (Chrome, Edge, Brave) and one for
+                  Firefox (addons.mozilla.org). The version comes from extension/manifest.json. See docs/BROWSER.md.
             """);
         return 2;
     }
@@ -201,6 +207,12 @@ internal static partial class Cli
             File.WriteAllText(sigPath, sig);
             Ok($"Signed {Path.GetFileName(package)} (SHA-256 {verified.Sha256[..16]}…)");
 
+            Step("Packaging the browser extension");
+            var ext = PackExtensionInto(Path.Combine(releasesDir, "extension"));
+            if (ext.Version != version)
+                Warn($"extension/manifest.json says {ext.Version}. Set its \"version\" to {version} if the extension changed in this release.");
+            Ok($"Packaged the browser extension {ext.Version}");
+
             if (dryRun)
             {
                 Ok($"Dry run complete. Everything is in {releasesDir}");
@@ -216,7 +228,7 @@ internal static partial class Cli
                 "--tag", tag, "--releaseName", $"Lockbox {version}", "--targetCommitish", commit]);
 
             Step("Attaching the signature and release notes, then publishing");
-            await github.PublishWithSignatureAsync(tag, manifestPath, sigPath, ReleaseBody(notes));
+            await github.PublishWithSignatureAsync(tag, [manifestPath, sigPath, ext.Unpacked], ReleaseBody(notes, repoUrl));
             Ok($"Lockbox {version} is live: {repoUrl}/releases/tag/{tag}");
             Console.WriteLine("  Installed copies will offer the update the next time they start.");
             Console.WriteLine("  Run `git fetch --tags` to get the new tag locally.");
@@ -239,15 +251,17 @@ internal static partial class Cli
     }
 
     /// <summary>The GitHub release description: your notes, plus a short "how do I get this" footer for people landing on the page.</summary>
-    private static string ReleaseBody(string? notesPath)
+    private static string ReleaseBody(string? notesPath, string repoUrl)
     {
         string notes = notesPath != null ? File.ReadAllText(notesPath).Trim() : "";
-        const string footer = """
+        string footer = $"""
             ---
 
             **New to Lockbox?** Download **Lockbox-win-Setup.exe** from the assets below and run it.
 
             **Already using it?** Lockbox offers this update by itself the next time it starts.
+
+            **Browser extension:** [docs/BROWSER.md]({repoUrl}/blob/main/docs/BROWSER.md) shows how to add it to Chrome, Edge, Brave or Firefox.
             """;
         return (notes.Length > 0 ? notes + "\n\n" : "") + footer;
     }
@@ -348,6 +362,83 @@ internal static partial class Cli
             return p.ExitCode == 0 ? output.Trim() : null;
         }
         catch (System.ComponentModel.Win32Exception) { return null; }
+    }
+
+    // ───────────────────────── browser extension ─────────────────────────
+
+    private static int PackExtension(Options o)
+    {
+        var p = PackExtensionInto(Path.GetFullPath(o.Get("out") ?? Path.Combine(Root, "Releases", "extension")));
+        Ok($"For Load unpacked:        {p.Unpacked}");
+        Ok($"Chrome Web Store package: {p.Chrome}");
+        Ok($"Firefox package:          {p.Firefox}");
+        Console.WriteLine("  What to do with each is in docs/BROWSER.md.");
+        return 0;
+    }
+
+    private sealed record ExtensionPackages(string Version, string Unpacked, string Chrome, string Firefox);
+
+    /// <summary>
+    /// Builds the three browser-extension packages from ./extension:
+    /// one to load unpacked (keeps the development key, so Lockbox trusts its ID), one for the Chrome Web Store
+    /// (Chrome, Edge, Brave; the store assigns its own ID) and one for Firefox (addons.mozilla.org signs it).
+    /// </summary>
+    private static ExtensionPackages PackExtensionInto(string outDir)
+    {
+        string src = Path.Combine(Root, "extension");
+        var manifest = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(src, "manifest.json")))!.AsObject();
+        string version = manifest["version"]!.ToString();
+        Directory.CreateDirectory(outDir);
+
+        var chrome = (System.Text.Json.Nodes.JsonObject)manifest.DeepClone();
+        chrome.Remove("key");
+
+        // Firefox: event-page background, a fixed add-on ID (the Lockbox helper only answers this ID), no Chrome-only keys.
+        var firefox = (System.Text.Json.Nodes.JsonObject)manifest.DeepClone();
+        firefox.Remove("key");
+        firefox.Remove("minimum_chrome_version");
+        firefox["background"] = new System.Text.Json.Nodes.JsonObject { ["scripts"] = new System.Text.Json.Nodes.JsonArray("background.js") };
+        firefox["browser_specific_settings"] = new System.Text.Json.Nodes.JsonObject
+        {
+            ["gecko"] = new System.Text.Json.Nodes.JsonObject
+            {
+                ["id"] = Lockbox.Core.Web.BrowserBridge.FirefoxExtensionId,
+                ["strict_min_version"] = "142.0",
+                ["data_collection_permissions"] = new System.Text.Json.Nodes.JsonObject { ["required"] = new System.Text.Json.Nodes.JsonArray("none") },
+            },
+        };
+
+        var p = new ExtensionPackages(version,
+            Path.Combine(outDir, $"Lockbox-Browser-Extension-{version}.zip"),
+            Path.Combine(outDir, $"lockbox-extension-chrome-web-store-{version}.zip"),
+            Path.Combine(outDir, $"lockbox-extension-firefox-{version}.zip"));
+        WriteExtensionZip(src, manifest, p.Unpacked);
+        WriteExtensionZip(src, chrome, p.Chrome);
+        WriteExtensionZip(src, firefox, p.Firefox);
+        return p;
+    }
+
+    private static void WriteExtensionZip(string src, System.Text.Json.Nodes.JsonObject manifest, string zipPath)
+    {
+        File.Delete(zipPath);
+        using var zip = System.IO.Compression.ZipFile.Open(zipPath, System.IO.Compression.ZipArchiveMode.Create);
+        var files = Directory.EnumerateFiles(src, "*", SearchOption.AllDirectories)
+            .Select(f => Path.GetRelativePath(src, f).Replace('\\', '/'))
+            .Where(f => f != "manifest.json" && !f.StartsWith('.') && !f.EndsWith(".md"))
+            .OrderBy(f => f, StringComparer.Ordinal);
+        var stamp = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);   // same bytes for the same files
+        var entry = zip.CreateEntry("manifest.json", System.IO.Compression.CompressionLevel.Optimal);
+        entry.LastWriteTime = stamp;
+        using (var w = new StreamWriter(entry.Open()))
+            w.Write(manifest.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+        foreach (var f in files)
+        {
+            var e = zip.CreateEntry(f, System.IO.Compression.CompressionLevel.Optimal);
+            e.LastWriteTime = stamp;
+            using var to = e.Open();
+            using var from = File.OpenRead(Path.Combine(src, f));
+            from.CopyTo(to);
+        }
     }
 
     // ───────────────────────── helpers ─────────────────────────
@@ -481,14 +572,14 @@ internal sealed class GitHub : IDisposable
         Console.WriteLine($"  Removed an unfinished draft of {tag} left by an earlier attempt.");
     }
 
-    /// <summary>Uploads manifest + signature to the draft, sets the description, then publishes (so clients never see it unsigned).</summary>
-    public async Task PublishWithSignatureAsync(string tag, string manifestPath, string sigPath, string body)
+    /// <summary>Uploads manifest + signature (and any other files) to the draft, sets the description, then publishes (so clients never see it unsigned).</summary>
+    public async Task PublishWithSignatureAsync(string tag, IEnumerable<string> files, string body)
     {
         var release = await FindReleaseAsync(tag) ?? throw new ToolException($"Couldn't find the draft release {tag} on GitHub.");
         long id = release.GetProperty("id").GetInt64();
         string uploadUrl = release.GetProperty("upload_url").GetString()!.Split('{')[0];
 
-        foreach (var file in new[] { manifestPath, sigPath })
+        foreach (var file in files)
         {
             string name = Path.GetFileName(file);
             foreach (var asset in release.GetProperty("assets").EnumerateArray().Where(a => a.GetProperty("name").GetString() == name))

@@ -1,0 +1,9 @@
+{
+  "name": "lockbox-browser-e2e",
+  "private": true,
+  "description": "Firefox end-to-end test for the Lockbox browser extension (see e2e-firefox.mjs). Not shipped.",
+  "type": "module",
+  "devDependencies": {
+    "puppeteer-core": "25.16.0"
+  }
+}

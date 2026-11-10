@@ -83,6 +83,7 @@ It's for anyone who's been keeping passwords in a text file, a notes app or thei
 
 **Stays out of your way**
 
+- **Browser extension** for Chrome, Edge, Brave and Firefox: a Lockbox button in sign-in boxes, offers to save new and changed passwords, and strong passwords on sign-up pages. It talks only to Lockbox on your computer and ignores look-alike sites ([how it works](docs/BROWSER.md))
 - **Auto-type:** press Ctrl+Alt+A on a sign-in page and Lockbox types your username and password, no clipboard involved (Windows, turn it on in Settings)
 - Imports from Chrome, Edge, Brave, Firefox, Safari, Bitwarden, 1Password, LastPass, KeePassXC, Dashlane and Proton Pass
 - Fast search, filters and keyboard shortcuts (Ctrl+F, Ctrl+C, Ctrl+B…)
@@ -113,7 +114,13 @@ The full details, including the file format and honest limitations, are in [SECU
 <details>
 <summary><b>Does Lockbox need the internet?</b></summary>
 <br>
-No. The only time it goes online is an optional check for updates on GitHub, which you can turn off in Settings. Your vault never leaves your computer.
+No. The only time it goes online is an optional check for updates on GitHub, which you can turn off in Settings. Your vault never leaves your computer, and the browser extension talks to Lockbox directly on your computer, not over the internet.
+</details>
+
+<details>
+<summary><b>Is there a browser extension?</b></summary>
+<br>
+Yes, for Chrome, Edge, Brave and Firefox. Turn it on in Lockbox under Settings → Browser extension, add the extension, and click Connect. It fills logins from a button in the sign-in box, offers to save new passwords, and only ever talks to Lockbox on the same computer: no account, no server. <a href="docs/BROWSER.md">BROWSER.md</a> has the setup steps and how it keeps your passwords safe.
 </details>
 
 <details>
@@ -159,6 +166,7 @@ Lockbox is free and open source under the [MIT license](LICENSE). It's built on 
 ## More
 
 - [User guide](docs/GUIDE.md): importing, auto-type, exporting, backup codes, shortcuts and backups
+- [Browser extension](docs/BROWSER.md): setting it up, using it, how it stays safe, and publishing it
 - [Security](docs/SECURITY.md): how encryption, updates and the file format work
 - [Developing](docs/DEVELOPING.md): building from source, tests and project layout
 - [Releasing](docs/RELEASING.md): publishing a signed update

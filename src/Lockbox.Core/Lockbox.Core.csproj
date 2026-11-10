@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <EmbeddedResource Include="Resources\eff_large.wordlist" />
+    <EmbeddedResource Include="Resources\public_suffix_list.dat" />
     <InternalsVisibleTo Include="Lockbox.Tests" />
   </ItemGroup>
 

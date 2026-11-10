@@ -38,7 +38,8 @@ Then it runs all the tests and:
 - builds the Windows app
 - packages it with Velopack: installer, full package, and a small delta from the previous release
 - signs it, and checks the signature the same way the app will
-- uploads it to GitHub as a draft, attaches the signature and your notes, and publishes
+- packages the browser extension (see below)
+- uploads it to GitHub as a draft, attaches the signature, the extension's *Load unpacked* zip and your notes, and publishes
 
 Installed copies offer the update the next time they start. Afterwards, `git fetch --tags` brings the new tag down to your computer.
 
@@ -50,6 +51,16 @@ Options:
 - `--allow-dirty` skips the committed-and-pushed check, for trying the tool out only.
 
 If a release fails halfway (say, the internet drops during the upload), just run the same command again. Unfinished drafts are never visible to anyone, and the tool clears out its own leftover draft first.
+
+## The browser extension
+
+The extension has its own version, in `extension/manifest.json`. When it changes in a release, set its `"version"` to the release's version; the tool warns when they differ. Browsers don't get the extension from Lockbox's updates: they get it from the Chrome Web Store and addons.mozilla.org, which update it by themselves. After releasing:
+
+```
+dotnet run --project tools/Lockbox.Release -- extension
+```
+
+then upload the new packages from `Releases/extension` as described in [BROWSER.md → Publishing the extension](BROWSER.md#publishing-the-extension). The first time, the Chrome Web Store gives the extension a new ID that has to be added to Lockbox *before* it's published there.
 
 ## Testing an update end to end
 

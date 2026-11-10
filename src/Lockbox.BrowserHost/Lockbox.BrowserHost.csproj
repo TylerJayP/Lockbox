@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The small helper browsers start to talk to Lockbox (native messaging). It's a console program
+    because browsers talk to it over stdin/stdout. It ships next to Lockbox.exe.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>Lockbox.BrowserHost</AssemblyName>
+    <RootNamespace>Lockbox.BrowserHost</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Lockbox.Core\Lockbox.Core.csproj" />
+  </ItemGroup>
+</Project>

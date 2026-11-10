@@ -12,6 +12,9 @@ public interface IPlatform
     /// <summary>Hide or show the window in screenshots and screen sharing. Returns false if the OS doesn't support it.</summary>
     bool SetCaptureProtection(bool enabled);
 
+    /// <summary>Brings the Lockbox window to the front (e.g. when the browser needs approval or the master password).</summary>
+    void BringToFront();
+
     /// <summary>Typing logins into other apps. Null where it isn't supported (anything but Windows).</summary>
     IAutoTypeHost? AutoType { get; }
 }

@@ -32,5 +32,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Lockbox.Core\Lockbox.Core.csproj" />
+    <!-- The browser helper is built alongside so it sits next to Lockbox.exe (the release tool publishes it there too). -->
+    <ProjectReference Include="..\Lockbox.BrowserHost\Lockbox.BrowserHost.csproj" />
   </ItemGroup>
 </Project>

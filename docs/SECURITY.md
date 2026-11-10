@@ -45,6 +45,23 @@ Auto-type (Windows, **off by default**) types a login with simulated keystrokes 
 - Protected items ask for the master password before anything is typed.
 - Characters are sent as Unicode input, so keyboard layout and Caps Lock can't change them.
 
+## Browser extension
+
+The extension (**off by default**; see [BROWSER.md](BROWSER.md)) never connects to the internet and has no copy of the vault. It asks Lockbox for one login at a time:
+
+```
+page ⇄ extension ⇄ browser native messaging (stdin/stdout) ⇄ Lockbox.BrowserHost ⇄ named pipe ⇄ Lockbox
+```
+
+- **Who can connect.** The helper is registered (per user, no admin rights) only for Lockbox's extension IDs, so browsers refuse to start it for any other extension. The browser tells the helper which extension started it, and Lockbox rejects every message from an ID it doesn't know. The pipe is created with *current user only* access, so other Windows accounts can't open it.
+- **Pairing.** Each browser profile gets a random client ID and must be approved once in Lockbox. Both sides show the same six-digit code, derived from the client ID, so you can tell it's your browser asking. Approved browsers are listed in Settings and can be disconnected; turning the setting off removes them all and the browser registrations.
+- **Site matching** uses the Public Suffix List to find each address's registrable domain: `mail.google.com` and `accounts.google.com` are the same site, `github.com.evil.net` is *evil.net*, and different `*.github.io` sites are different sites. IP addresses, `localhost` and single-word hosts must match exactly, and a saved port must match. Only logins for the page's site are offered.
+- **What the page can reach.** Only the extension's own pages (the popup and its in-page frames) can ask for logins or passwords. The script inside web pages can only ask about its own frame's address, and gets counts and states, never passwords or usernames. The in-page menu and save bar are extension pages inside a closed shadow root; they're opened with single-use tokens tied to the tab and frame.
+- **Filling.** A password is sent only when you pick a login, and is written only into frames whose address is on the login's site. Using a login on a different site needs an explicit confirmation in the popup (Cancel is the default). Protected items need the master password in Lockbox first.
+- **Saving** only creates or updates logins for the page's site, keeps the old password in history, and never offers to put back a password that's already in the history. A captured login waits at most two minutes for your answer, in memory only.
+
+Limits: a page holds a password once it's filled into it, and malware in the browser, or another extension that can read every site, can see what's typed or filled. Lockbox can't change that; it's true of every password manager's extension.
+
 ## Updates
 
 Installed copies check GitHub Releases for a newer version. Before anything is installed:
@@ -78,6 +95,7 @@ The signing key lives encrypted on the developer's computer and never goes to Gi
 - **.NET strings can't be wiped.** Decrypted passwords shown in the app live in memory until the runtime clears them. Malware already running as you could read them. That's true of every password manager while unlocked.
 - **The clipboard is shared.** While a password is on the clipboard (20 s by default), any app can read it. Auto-type avoids the clipboard.
 - **Auto-type trusts window titles.** A fake page whose title mentions your bank's name would match your bank login. Only press Ctrl+Alt+A on the real sign-in page (check the address bar). Like typing by hand, keystrokes can be seen by a keylogger already running on the computer.
+- **The browser extension extends trust to your browser.** Anything that can read pages in your browser (a malicious extension, malware) can read a password after it's filled. Leave the extension off if you don't use it.
 - **Some protections are Windows-only:** clipboard-history exclusion, screen-capture hiding and Win+L locking. Elsewhere, Lockbox detects sleep from gaps in its timer.
 - **Attachments live inside the vault file**, so the whole vault (up to 150 MB of attachments) is rewritten on every save. That's fine for documents, but it's not meant for photo libraries.
 

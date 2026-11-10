@@ -101,6 +101,44 @@ public partial class MainWindowViewModel : ObservableObject
         Platform = platform;
         Settings = settings ?? AppSettings.Load();
         CurrentPage = new UnlockViewModel(this);
+        BrowserRequests = new BrowserRequestHandler(this);
+    }
+
+    // ───────────── browser extension ─────────────
+
+    private BrowserBridgeServer? _browserBridge;
+
+    /// <summary>Answers the browser extension (also used directly by tests).</summary>
+    public BrowserRequestHandler BrowserRequests { get; }
+
+    /// <summary>Why the browser extension can't work right now, if something is wrong (shown in Settings).</summary>
+    public string? BrowserProblem { get; private set; }
+
+    public bool BrowserBridgeRunning => _browserBridge != null;
+
+    /// <summary>
+    /// Matches the browser connection to the setting: registers the helper with the browsers and listens for it,
+    /// or stops and removes the registration. Called at startup and when the setting changes.
+    /// </summary>
+    public void ApplyBrowserIntegration()
+    {
+        if (Settings.BrowserExtensionEnabled)
+        {
+            BrowserProblem = BrowserHostRegistration.Register();
+            if (_browserBridge == null)
+            {
+                _browserBridge = new BrowserBridgeServer(req =>
+                    Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => BrowserRequests.HandleAsync(req)));
+                _browserBridge.Start();
+            }
+        }
+        else
+        {
+            _browserBridge?.Dispose();
+            _browserBridge = null;
+            BrowserProblem = null;
+            BrowserHostRegistration.Unregister();
+        }
     }
 
     public void Navigate(object page) => CurrentPage = page;
@@ -156,6 +194,7 @@ public partial class MainWindowViewModel : ObservableObject
     {
         ActiveVault?.SaveAndCloseOnExit();
         Platform.Clipboard.ClearIfOursOnExit();
+        _browserBridge?.Dispose();
     }
 
     public void OnMinimized()

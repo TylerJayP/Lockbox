@@ -417,6 +417,12 @@ internal static class Smoke
         checkup.OpenCommand.Execute(someItem);
         Check(fvm.CurrentPage == fv && fv.Selected?.Id == someItem.Id, "Fix → jumps to that item");
 
+        BrowserChecks(dir, fake, fvm, fv, newMaster);
+        string e2e = Environment.GetEnvironmentVariable("LOCKBOX_BROWSER_E2E") ?? "";
+        if (e2e is "1" or "chrome" or "all") BrowserE2E(dir, fvm, fv, newMaster, secret, "chrome");
+        if (e2e is "firefox" or "all") BrowserE2E(dir, fvm, fv, newMaster, secret, "firefox");
+
+        if (fvm.ActiveVault is { } unlockedAgain && unlockedAgain != fv) unlockedAgain.Dispose();   // unlocked again by a browser test
         fv.Dispose();
         Check(keyboard.Hotkey == null, "locking the vault stops the auto-type hotkey");
 
@@ -448,8 +454,286 @@ internal static class Smoke
         public Task<string?> PickSaveFileAsync(string title, string suggestedName, string extension, string filterName) => Task.FromResult(NextSavePath);
         public FakeAutoType? FakeKeyboard;
         public Lockbox.App.Services.IAutoTypeHost? AutoType => FakeKeyboard;
+        public int BroughtToFront;
+        public void BringToFront() => BroughtToFront++;
         public void OpenUrl(string url) { }
         public void OpenFolder(string path) { }
+    }
+
+    // ───────────── browser extension ─────────────
+
+    private static T Run<T>(Task<T> t) { Wait(() => t.IsCompleted); return t.Result; }
+
+    private static void BrowserChecks(string dir, FakePlatform fake, MainWindowViewModel fvm, VaultViewModel fv, string master)
+    {
+        const string ext = "chrome-extension://pnjncldjklkgjghfknegebmndmhmchmj/";
+        string hostDir = Path.Combine(dir, "browser-host");
+        Environment.SetEnvironmentVariable("LOCKBOX_BROWSER_HOST_DIR", hostDir);
+        Environment.SetEnvironmentVariable("LOCKBOX_BROWSER_PIPE", "lockbox-test-" + Guid.NewGuid().ToString("N")[..10]);
+        string client = Guid.NewGuid().ToString();
+        int n = 0;
+
+        System.Text.Json.Nodes.JsonObject Ask(string type, System.Text.Json.Nodes.JsonObject? body = null, string caller = ext)
+        {
+            var req = body ?? [];
+            req["id"] = ++n;
+            req["type"] = type;
+            req["caller"] = caller;
+            req["client"] ??= client;
+            return Run(fvm.BrowserRequests.HandleAsync(req));
+        }
+        static string S(System.Text.Json.Nodes.JsonObject o, string k) => o[k]?.ToString() ?? "";
+        static bool Ok(System.Text.Json.Nodes.JsonObject o) => o["ok"]?.GetValue<bool>() == true;
+        static string Err(System.Text.Json.Nodes.JsonObject o) => S(o, "error");
+
+        fv.ClearSearchCommand.Execute(null);
+        Check(Err(Ask("status")) == "disabled", "browser: off until turned on in Settings");
+        var st = new SettingsViewModel(fv) { BrowserExtensionEnabled = true };
+        string manifest = File.ReadAllText(Path.Combine(hostDir, "com.tylerjayp.lockbox.chrome.json"));
+        Check(fvm.BrowserBridgeRunning && manifest.Contains(ext) && manifest.Contains("Lockbox.BrowserHost"),
+            "browser: turning it on registers the helper for our extension only");
+        Check(File.ReadAllText(Path.Combine(hostDir, "com.tylerjayp.lockbox.firefox.json")).Contains("lockbox@tylerjayp.github.io"),
+            "browser: Firefox registration names our add-on");
+
+        Check(Err(Ask("status", caller: "chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/")) == "untrusted", "browser: other extensions get nothing");
+        Check(S(Ask("status"), "state") == "not-paired" && S(Ask("status"), "vault") == "", "browser: unknown browsers see no vault name");
+        Check(Err(Ask("logins", new() { ["url"] = "https://github.com/login" })) == "not-paired", "browser: no logins before pairing");
+
+        var pairTask = fvm.BrowserRequests.HandleAsync(new() { ["id"] = 1, ["type"] = "pair", ["caller"] = ext, ["client"] = client, ["browser"] = "edge" });
+        Wait(() => fvm.Dialog != null);
+        Check(fvm.Dialog!.Title.Contains("Microsoft Edge") && fvm.Dialog.Message.Contains(Lockbox.Core.Web.BrowserBridge.PairingCode(client)) && fake.BroughtToFront > 0,
+            "browser: pairing asks in Lockbox, names the browser and shows the matching code");
+        AnswerDialog(fvm, "cancel");
+        Check(Err(Run(pairTask)) == "denied" && fvm.Settings.BrowserClients.Count == 0, "browser: Don't allow refuses it");
+        pairTask = fvm.BrowserRequests.HandleAsync(new() { ["id"] = 2, ["type"] = "pair", ["caller"] = ext, ["client"] = client, ["browser"] = "edge" });
+        AnswerDialog(fvm, "ok");
+        Check(Ok(Run(pairTask)) && fvm.Settings.BrowserClients.Single().Browser == "Microsoft Edge", "browser: Allow pairs it");
+        Check(S(Ask("status"), "state") == "unlocked" && S(Ask("status"), "vault") == "Mine", "browser: paired browser sees it's unlocked");
+
+        // Save a new login from a sign-up page, then find it again.
+        var check = Ask("checkSave", new() { ["url"] = "https://github.com/signup", ["username"] = "TylerJayP", ["password"] = "gh-From-Browser-1!" });
+        Check(S(check, "action") == "new" && S(check, "title") == "github.com", "browser: a new login offers to save");
+        var saved = Ask("save", new() { ["url"] = "https://github.com/signup", ["username"] = "TylerJayP", ["password"] = "gh-From-Browser-1!" });
+        var gh = fv.Vault.Entries.SingleOrDefault(e => e.Id.ToString() == S(saved, "entry"));
+        Check(S(saved, "action") == "created" && gh is { Title: "github.com", Url: "https://github.com", Username: "TylerJayP" } && !fv.Vault.HasUnsavedChanges,
+            "browser: Save adds it to the vault and saves the file");
+        Check(S(Ask("checkSave", new() { ["url"] = "https://github.com/login", ["username"] = "tylerjayp", ["password"] = "gh-From-Browser-1!" }), "action") == "none",
+            "browser: signing in with a saved login doesn't ask again");
+
+        var onPage = Ask("logins", new() { ["url"] = "https://github.com/login" });
+        var gist = Ask("logins", new() { ["url"] = "https://gist.github.com/" });
+        var pages = Ask("logins", new() { ["url"] = "https://tylerjayp.github.io/" });
+        Check(onPage["matches"]!.AsArray().Count == 1 && S(onPage["matches"]![0]!.AsObject(), "username") == "TylerJayP" && onPage["matches"]![0]!["password"] == null,
+            "browser: logins for the page list names and usernames, never passwords");
+        Check(gist["matches"]!.AsArray().Count == 1 && pages["matches"]!.AsArray().Count == 0,
+            "browser: same site matches (gist.github.com), a github.io page doesn't");
+
+        var fill = Ask("fill", new() { ["url"] = "https://github.com/login", ["entry"] = gh!.Id.ToString() });
+        Check(S(fill, "password") == "gh-From-Browser-1!" && S(fill, "username") == "TylerJayP", "browser: fill returns the login for its own site");
+        var phish = Ask("fill", new() { ["url"] = "https://github.com.evil.net/login", ["entry"] = gh.Id.ToString() });
+        Check(Err(phish) == "other-site" && phish["password"] == null && S(phish, "savedSite") == "github.com", "browser: another site gets nothing without asking");
+
+        // An old login with no website: fill it once on purpose and remember the site.
+        var steam = fv.Vault.Entries.Single(e => e.Title == "Steam");
+        var steamFill = Ask("fill", new() { ["url"] = "https://store.steampowered.com/login", ["entry"] = steam.Id.ToString(), ["anySite"] = true, ["rememberSite"] = true });
+        Check(Ok(steamFill) && fv.Vault.Entries.Single(e => e.Id == steam.Id).Url == "https://store.steampowered.com",
+            "browser: filling a login with no website can remember the site");
+
+        // Update after a password change keeps the old one in history.
+        var upd = Ask("checkSave", new() { ["url"] = "https://github.com/settings", ["username"] = "TylerJayP", ["password"] = "gh-Changed-2!" });
+        Check(S(upd, "action") == "update" && S(upd, "entry") == gh.Id.ToString(), "browser: a changed password offers to update");
+        Ask("save", new() { ["url"] = "https://github.com/settings", ["username"] = "TylerJayP", ["password"] = "gh-Changed-2!", ["entry"] = gh.Id.ToString() });
+        var ghNow = fv.Vault.Entries.Single(e => e.Id == gh.Id);
+        Check(ghNow.Password == "gh-Changed-2!" && ghNow.PasswordHistory.Any(h => h.Password == "gh-From-Browser-1!"), "browser: update keeps the old password in history");
+        Check(S(Ask("checkSave", new() { ["url"] = "https://github.com/login", ["username"] = "TylerJayP", ["password"] = "gh-From-Browser-1!" }), "action") == "none",
+            "browser: typing an old password doesn't offer to go back to it");
+        Check(Err(Ask("save", new() { ["url"] = "https://evil.net/", ["username"] = "x", ["password"] = "y", ["entry"] = gh.Id.ToString() })) == "other-site",
+            "browser: a login can't be changed from another site");
+
+        // Protected logins need the master password in Lockbox.
+        var prot = ghNow.Clone();
+        prot.Reprompt = true;
+        fv.Vault.UpdateEntry(prot);
+        fv.Selected = null;
+        var protFill = fvm.BrowserRequests.HandleAsync(new() { ["id"] = 9, ["type"] = "fill", ["caller"] = ext, ["client"] = client, ["url"] = "https://github.com/login", ["entry"] = gh.Id.ToString() });
+        AnswerDialog(fvm, "ok", master);
+        Check(S(Run(protFill), "password") == "gh-Changed-2!", "browser: a protected login fills after the master password");
+
+        var search = Ask("search", new() { ["query"] = "git" });
+        Check(search["results"]!.AsArray().Any(r => S(r!.AsObject(), "title") == "github.com") && search["results"]!.AsArray().All(r => r!["password"] == null),
+            "browser: search finds logins by name, without passwords");
+        Check(S(Ask("generate"), "password").Length == 20, "browser: generator makes a 20-character password");
+
+        // The real helper process, over the real pipe.
+        string helper = Path.Combine(AppContext.BaseDirectory, "Lockbox.BrowserHost.dll");
+        System.Text.Json.Nodes.JsonObject ViaHelper(string caller, string pipe, System.Text.Json.Nodes.JsonObject req)
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo("dotnet") { RedirectStandardInput = true, RedirectStandardOutput = true, UseShellExecute = false };
+            psi.ArgumentList.Add(helper);
+            psi.ArgumentList.Add(caller);
+            psi.Environment["LOCKBOX_BROWSER_PIPE"] = pipe;
+            using var p = System.Diagnostics.Process.Start(psi)!;
+            Lockbox.Core.Web.NativeMessage.WriteAsync(p.StandardInput.BaseStream, req.ToJsonString()).Wait();
+            var reply = Lockbox.Core.Web.NativeMessage.ReadAsync(p.StandardOutput.BaseStream);
+            Wait(() => reply.IsCompleted, 20000);
+            p.StandardInput.Close();
+            p.WaitForExit(5000);
+            return (System.Text.Json.Nodes.JsonObject)System.Text.Json.Nodes.JsonNode.Parse(reply.Result!)!;
+        }
+        string pipeName = Environment.GetEnvironmentVariable("LOCKBOX_BROWSER_PIPE")!;
+        var viaHelper = ViaHelper(ext, pipeName, new() { ["id"] = "abc", ["type"] = "logins", ["client"] = client, ["url"] = "https://github.com/" });
+        Check(S(viaHelper, "id") == "abc" && viaHelper["matches"]!.AsArray().Count == 1, "browser: the helper relays requests to Lockbox over the pipe");
+        var spoof = ViaHelper("chrome-extension://bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/", pipeName,
+            new() { ["id"] = 1, ["type"] = "status", ["client"] = client, ["caller"] = ext });
+        Check(Err(spoof) == "untrusted", "browser: the helper stamps the real caller, so a message can't claim to be ours");
+        Check(Err(ViaHelper(ext, "lockbox-nobody-home", new() { ["id"] = 1, ["type"] = "status" })) == "not-running",
+            "browser: the helper says when Lockbox isn't open");
+
+        st = new SettingsViewModel(fv);   // the Settings page as you'd open it now
+        Check(st.BrowserClients.Single().Name == "Microsoft Edge" && st.BrowserStatus.StartsWith("On."), "browser: Settings lists the connected browser");
+        st.DisconnectBrowserCommand.Execute(st.BrowserClients.Single());
+        Check(Err(Ask("logins", new() { ["url"] = "https://github.com/login" })) == "not-paired", "browser: Disconnect revokes it");
+        st.BrowserExtensionEnabled = false;
+        Check(!fvm.BrowserBridgeRunning && !File.Exists(Path.Combine(hostDir, "com.tylerjayp.lockbox.chrome.json")) && Err(Ask("status")) == "disabled",
+            "browser: turning it off stops listening and removes the registration");
+        Environment.SetEnvironmentVariable("LOCKBOX_BROWSER_HOST_DIR", null);
+    }
+
+    /// <summary>
+    /// The real thing: a browser with the extension, talking to this Lockbox through the real helper.
+    /// Only runs when asked (LOCKBOX_BROWSER_E2E=chrome, firefox or all; not in CI) because it needs the browsers:
+    /// Chrome uses BrowserE2E/e2e.py (Python + Playwright), Firefox uses BrowserE2E/e2e-firefox.mjs (Node +
+    /// Puppeteer, `npm ci` in that folder) with the packaged Firefox add-on. The script plays the person at the
+    /// browser; here we answer Lockbox's dialogs and then check what really ended up in the vault.
+    /// </summary>
+    private static void BrowserE2E(string dir, MainWindowViewModel fvm, VaultViewModel fv, string master, byte[] keyFileSecret, string browser)
+    {
+        if (fvm.ActiveVault == null && fvm.CurrentPage is UnlockViewModel relock)
+        {
+            // An earlier browser's run ended by locking Lockbox.
+            relock.TypeKeyManually = true;
+            relock.ManualKey = KeyFile.FormatGroups(keyFileSecret);
+            relock.ManualCheck = KeyFile.Checksum(keyFileSecret);
+            relock.Password = master;
+            Run(relock.UnlockCommand.ExecuteAsync(null));
+        }
+        fv = fvm.ActiveVault!;
+        string vaultFile = fv.Vault.FilePath;
+        string hostDir = Path.Combine(dir, "e2e-host"), signal = Path.Combine(dir, $"e2e-signal-{browser}"), report = Path.Combine(dir, $"e2e-report-{browser}.json");
+        Directory.CreateDirectory(signal);
+        Environment.SetEnvironmentVariable("LOCKBOX_BROWSER_HOST_DIR", hostDir);
+        Environment.SetEnvironmentVariable("LOCKBOX_BROWSER_PIPE", "lockbox-e2e-" + Guid.NewGuid().ToString("N")[..10]);
+        fvm.Settings.BrowserClients.Clear();
+        var settings = new SettingsViewModel(fv);
+        settings.BrowserExtensionEnabled = false;   // off and on again: listen on this run's pipe and write fresh registrations
+        settings.BrowserExtensionEnabled = true;
+
+        // Start from the same logins each run (an earlier browser's run changes them).
+        string[] testUsers = ["tyler-e2e", "tyler-bank", "new-user@example.com", "tyler@gmail.com", "someone"];
+        foreach (var old in fv.Vault.Entries.Where(e => testUsers.Contains(e.Username)).Select(e => e.Id).ToList())
+            fv.Vault.DeleteEntry(old);
+        var github = fv.Vault.AddEntry(new Lockbox.Core.Model.Entry { Title = "GitHub", Url = "https://github.com", Username = "tyler-e2e", Password = "E2e-Gh-Pass-1!" });
+        fv.Vault.AddEntry(new Lockbox.Core.Model.Entry { Title = "Example Bank", Url = "https://bank.example.com", Username = "tyler-bank", Password = "Bank-Pass-9!", Reprompt = true });
+        Run(fv.PersistAsync());
+
+        string repo = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+        string scripts = Path.Combine(repo, "tests", "Lockbox.UiTests", "BrowserE2E");
+        System.Diagnostics.ProcessStartInfo psi;
+        if (browser == "chrome")
+        {
+            psi = new("python3") { ArgumentList = { Path.Combine(scripts, "e2e.py"), "--ext", Path.Combine(repo, "extension"),
+                                                    "--manifest", Path.Combine(hostDir, "com.tylerjayp.lockbox.chrome.json") } };
+        }
+        else
+        {
+            // Test the add-on exactly as it ships: package it with the release tool, then load that package.
+            string pack = Path.Combine(dir, "e2e-extension"), unpacked = Path.Combine(pack, "firefox");
+            var tool = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!.EndsWith("dotnet") ? Environment.ProcessPath : "dotnet")
+            {
+                ArgumentList = { "run", "--project", Path.Combine(repo, "tools", "Lockbox.Release"), "--", "extension", "--out", pack },
+                UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true,
+            };
+            using (var p = System.Diagnostics.Process.Start(tool)!)
+            {
+                string packLog = p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd();
+                p.WaitForExit();
+                var zip = Directory.Exists(pack) ? Directory.GetFiles(pack, "lockbox-extension-firefox-*.zip").SingleOrDefault() : null;
+                Check(p.ExitCode == 0 && zip != null, "firefox: the release tool packaged the add-on" + (zip == null ? $" ({packLog.Trim()})" : ""));
+                if (zip == null) return;
+                System.IO.Compression.ZipFile.ExtractToDirectory(zip!, unpacked, overwriteFiles: true);
+            }
+            psi = new("node") { ArgumentList = { Path.Combine(scripts, "e2e-firefox.mjs"), "--ext", unpacked,
+                                                 "--manifest", Path.Combine(hostDir, "com.tylerjayp.lockbox.firefox.json") } };
+        }
+        psi.UseShellExecute = false;
+        psi.RedirectStandardOutput = psi.RedirectStandardError = true;
+        foreach (var a in new[] { "--profile", Path.Combine(dir, $"e2e-profile-{browser}"), "--report", report, "--signal", signal })
+            psi.ArgumentList.Add(a);
+        // The browser starts the helper with this environment: point it at this test's pipe and .NET.
+        psi.Environment["LOCKBOX_BROWSER_PIPE"] = Environment.GetEnvironmentVariable("LOCKBOX_BROWSER_PIPE");
+        psi.Environment["DOTNET_ROOT"] = Path.GetDirectoryName(Environment.ProcessPath!.EndsWith("dotnet") ? Environment.ProcessPath : "/opt/dotnet/dotnet")!;
+
+        using var py = System.Diagnostics.Process.Start(psi)!;
+        var output = new System.Text.StringBuilder();
+        py.OutputDataReceived += (_, e) => { lock (output) output.AppendLine(e.Data); };
+        py.ErrorDataReceived += (_, e) => { lock (output) output.AppendLine(e.Data); };
+        py.BeginOutputReadLine();
+        py.BeginErrorReadLine();
+
+        var dialogs = new List<string>();
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (!py.HasExited && sw.Elapsed < TimeSpan.FromMinutes(5))
+        {
+            Dispatcher.UIThread.RunJobs();
+            if (fvm.Dialog is { } d && d != _lastDialog)
+            {
+                _lastDialog = d;
+                dialogs.Add(d.Title + " | " + d.Message);
+                if (d.Title.StartsWith("Connect ")) d.PressCommand.Execute(d.Buttons.First(b => b.Id == "ok"));
+                else if (d.Title.Contains("is protected")) { d.Input = master; d.PressCommand.Execute(d.Buttons.First(b => b.Id == "ok")); }
+                else d.PressCommand.Execute(d.Buttons.First());
+            }
+            if (File.Exists(Path.Combine(signal, "lock-request")) && !File.Exists(Path.Combine(signal, "lock-done")))
+            {
+                Run(fv.LockCommand.ExecuteAsync(null));
+                File.WriteAllText(Path.Combine(signal, "lock-done"), "");
+            }
+            Thread.Sleep(10);
+        }
+        if (!py.HasExited) py.Kill(entireProcessTree: true);
+        py.WaitForExit();
+        lock (output) File.WriteAllText(Path.Combine(dir, $"e2e-output-{browser}.txt"), output.ToString());
+        if (Environment.GetEnvironmentVariable("LOCKBOX_BROWSER_E2E_LOG") is { Length: > 0 } log)
+            lock (output) File.AppendAllText(log, $"=== {browser} ===\n" + output.ToString() + "\n--- dialogs ---\n" + string.Join("\n", dialogs) + "\n");
+
+        if (!File.Exists(report))
+        {
+            Check(false, $"{browser}: the browser test ran (" + output.ToString().Trim().Split('\n').LastOrDefault() + ")");
+            Environment.SetEnvironmentVariable("LOCKBOX_BROWSER_HOST_DIR", null);
+            return;
+        }
+        var results = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(report))!.AsArray();
+        string Detail(string name) => results.FirstOrDefault(r => r!["name"]!.ToString() == name)?["detail"]?.ToString() ?? "";
+        foreach (var r in results.Where(r => !r!["name"]!.ToString().StartsWith('_')))
+            Check(r!["ok"]!.GetValue<bool>(), $"{browser}: " + r["name"] + (r["ok"]!.GetValue<bool>() ? "" : $" ({r["detail"]})"));
+
+        string code = Detail("_pairing_code");
+        string name = browser == "chrome" ? "Google Chrome" : "Firefox";
+        Check(code.Length == 7 && dialogs.Any(m => m.StartsWith($"Connect {name} to Lockbox?") && m.Contains(code)),
+            $"{browser}: Lockbox's approval names {name} and shows the same code as the popup");
+        Check(dialogs.Any(m => m.Contains("\"Example Bank\" is protected")), $"{browser}: the protected login asked for the master password in Lockbox");
+
+        using var after = Vault.Open(vaultFile, master, keyFileSecret);
+        var ghNow = after.Entries.Single(e => e.Id == github.Id);
+        Check(ghNow.Password == "E2e-Gh-Changed-2!" && ghNow.PasswordHistory.Any(h => h.Password == "E2e-Gh-Pass-1!"),
+            $"{browser}: Update changed the saved password and kept the old one in history");
+        string generated = Detail("_generated");
+        Check(after.Entries.Any(e => e.Username == "new-user@example.com" && e.Url == "https://github.com" && e.Password == generated && generated.Length == 20),
+            $"{browser}: the sign-up was saved with the generated password");
+        Check(after.Entries.Any(e => e.Title == "google.com" && e.Username == "tyler@gmail.com" && e.Password == "G00gle-Two-Step!"),
+            $"{browser}: the two-step sign-in was saved with its username");
+        Check(!after.Entries.Any(e => e.Url.Contains("evil")), $"{browser}: nothing was saved for the look-alike site");
+        Environment.SetEnvironmentVariable("LOCKBOX_BROWSER_HOST_DIR", null);
     }
 
     private sealed class FakeAutoType : Lockbox.App.Services.IAutoTypeHost

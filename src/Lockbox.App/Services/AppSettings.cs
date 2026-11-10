@@ -20,6 +20,12 @@ public sealed class AppSettings
     /// <summary>Ask GitHub for a newer version when Lockbox starts. The only time Lockbox goes online.</summary>
     public bool CheckForUpdates { get; set; } = true;
 
+    /// <summary>Let the Lockbox browser extension fill and save logins. Off until turned on.</summary>
+    public bool BrowserExtensionEnabled { get; set; }
+
+    /// <summary>Browsers you approved to connect (each extension install has its own random ID).</summary>
+    public List<BrowserClient> BrowserClients { get; set; } = [];
+
     /// <summary>Show usernames in full in the item list. Off: "ty•••@example.com", so people nearby can't read them.</summary>
     public bool ShowFullUsernames { get; set; }
 
@@ -94,10 +100,12 @@ public sealed class AppSettings
         Save();
     }
 
-    private static string FilePath => Path.Combine(
+    /// <summary>Where Lockbox keeps per-computer settings (never vault data).</summary>
+    public static string Directory =>
         Environment.GetEnvironmentVariable("LOCKBOX_SETTINGS_DIR") is { Length: > 0 } dir ? dir
-            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Lockbox"),
-        "settings.json");
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Lockbox");
+
+    private static string FilePath => Path.Combine(Directory, "settings.json");
 
     public static AppSettings Load()
     {
@@ -114,7 +122,7 @@ public sealed class AppSettings
     {
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
+            System.IO.Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
             if (!RememberKeyFileLocation) LastKeyFilePath = null;
             File.WriteAllText(FilePath, JsonSerializer.Serialize(this, AppSettingsJson.Default.AppSettings));
         }
@@ -125,6 +133,8 @@ public sealed class AppSettings
 public sealed record KnownRevision(long Revision, DateTimeOffset SavedUtc);
 
 public sealed record RecentVault(string Path, string? KeyFilePath);
+
+public sealed record BrowserClient(string Id, string Browser, DateTimeOffset AddedUtc);
 
 [System.Text.Json.Serialization.JsonSerializable(typeof(AppSettings))]
 [System.Text.Json.Serialization.JsonSourceGenerationOptions(WriteIndented = true)]

@@ -90,6 +90,38 @@
                 </StackPanel>
             </Border>
 
+            <!-- Browser extension -->
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="h2" Text="Browser extension" />
+                    <CheckBox IsChecked="{Binding BrowserExtensionEnabled}">
+                        <StackPanel>
+                            <TextBlock Text="Let the Lockbox extension fill and save logins in my browser" />
+                            <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap"
+                                       Text="Works with Chrome, Edge, Brave and Firefox. A browser only gets logins for the site it's on, only while Lockbox is unlocked, and only after you approve it here once." />
+                        </StackPanel>
+                    </CheckBox>
+                    <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap" Text="{Binding BrowserStatus}"
+                               IsVisible="{Binding BrowserStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <ItemsControl ItemsSource="{Binding BrowserClients}" IsVisible="{Binding HasBrowserClients}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:BrowserClientRow">
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                        <TextBlock Classes="dim" FontSize="12" Text="{Binding Detail}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Content="Disconnect"
+                                            Command="{Binding $parent[ItemsControl].((vm:SettingsViewModel)DataContext).DisconnectBrowserCommand}"
+                                            CommandParameter="{Binding}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Classes="link" Content="How to add the extension to your browser" Command="{Binding OpenBrowserGuideCommand}" />
+                </StackPanel>
+            </Border>
+
             <!-- Auto-type -->
             <Border Classes="card">
                 <StackPanel Spacing="12">

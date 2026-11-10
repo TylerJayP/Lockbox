@@ -91,6 +91,13 @@ public partial class MainWindow : Window, IPlatform
 
     public void OpenFolder(string path) => _ = Launcher.LaunchDirectoryInfoAsync(new DirectoryInfo(path));
 
+    public void BringToFront()
+    {
+        if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+        Show();
+        Activate();
+    }
+
     private WindowsAutoType? _autoType;
 
     public IAutoTypeHost? AutoType
@@ -120,6 +127,7 @@ public partial class MainWindow : Window, IPlatform
     {
         base.OnOpened(e);
         SetCaptureProtection(_vm.Settings.HideFromScreenCapture);
+        _vm.ApplyBrowserIntegration();
 
         // Quietly look for an update a few seconds after start (never blocks or nags if offline).
         if (_vm.Settings.CheckForUpdates && UpdateService.IsConfigured)

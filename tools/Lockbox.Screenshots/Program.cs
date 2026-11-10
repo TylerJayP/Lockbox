@@ -298,6 +298,7 @@ internal sealed class ShotPlatform(MainWindow window) : Lockbox.App.Services.IPl
     public void OpenUrl(string url) { }
     public void OpenFolder(string path) { }
     public bool SetCaptureProtection(bool enabled) => false;
+    public void BringToFront() { }
     public Lockbox.App.Services.IAutoTypeHost? AutoType { get; } = new NoKeyboard();
 
     private sealed class NoKeyboard : Lockbox.App.Services.IAutoTypeHost

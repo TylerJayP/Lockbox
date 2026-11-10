@@ -12,3 +12,6 @@ lockbox-export*.csv
 Releases/
 *.lbxsign
 raw-shots/
+
+# Browser end-to-end test tools (npm ci in tests/Lockbox.UiTests/BrowserE2E)
+node_modules/

@@ -27,6 +27,8 @@ public partial class SettingsViewModel : ObservableObject
         _checkForUpdates = owner.Main.Settings.CheckForUpdates;
         _autoTypeEnabled = owner.Main.Settings.AutoTypeEnabled;
         UpdateAutoTypeStatus();
+        _browserExtensionEnabled = owner.Main.Settings.BrowserExtensionEnabled;
+        LoadBrowserClients();
         RefreshInfo();
     }
 
@@ -73,6 +75,47 @@ public partial class SettingsViewModel : ObservableObject
         _owner.RebuildList();
     }
     [ObservableProperty] private string? _captureStatus;
+
+    // ───────────── browser extension ─────────────
+
+    [ObservableProperty] private bool _browserExtensionEnabled;
+    [ObservableProperty] private string _browserStatus = "";
+    public System.Collections.ObjectModel.ObservableCollection<BrowserClientRow> BrowserClients { get; } = [];
+    public bool HasBrowserClients => BrowserClients.Count > 0;
+
+    partial void OnBrowserExtensionEnabledChanged(bool value)
+    {
+        _owner.Main.Settings.BrowserExtensionEnabled = value;
+        _owner.Main.Settings.Save();
+        _owner.Main.ApplyBrowserIntegration();
+        UpdateBrowserStatus();
+    }
+
+    private void LoadBrowserClients()
+    {
+        BrowserClients.Clear();
+        foreach (var c in _owner.Main.Settings.BrowserClients.OrderBy(c => c.AddedUtc)) BrowserClients.Add(new BrowserClientRow(c));
+        OnPropertyChanged(nameof(HasBrowserClients));
+        UpdateBrowserStatus();
+    }
+
+    private void UpdateBrowserStatus() => BrowserStatus =
+        !BrowserExtensionEnabled ? ""
+        : _owner.Main.BrowserProblem is { } problem ? problem
+        : BrowserClients.Count == 0 ? "On. Now add the Lockbox extension to your browser and click Connect in it."
+        : "On. Your connected browsers can fill and save logins while Lockbox is unlocked.";
+
+    [RelayCommand]
+    private void DisconnectBrowser(BrowserClientRow row)
+    {
+        _owner.Main.Settings.BrowserClients.RemoveAll(c => c.Id == row.Id);
+        _owner.Main.Settings.Save();
+        LoadBrowserClients();
+        _owner.Status = $"Disconnected {row.Name}. It will have to ask again before it can fill anything.";
+    }
+
+    [RelayCommand]
+    private void OpenBrowserGuide() => _owner.Platform.OpenUrl($"{Services.UpdateTrust.RepoUrl}/blob/main/docs/BROWSER.md");
 
     // ───────────── auto-type ─────────────
 
@@ -399,3 +442,10 @@ public partial class SettingsViewModel : ObservableObject
 }
 
 public sealed record ShortcutRow(string Keys, string Action);
+
+public sealed class BrowserClientRow(Services.BrowserClient client)
+{
+    public string Id { get; } = client.Id;
+    public string Name { get; } = client.Browser;
+    public string Detail { get; } = $"Connected {client.AddedUtc.LocalDateTime:MMM d, yyyy}";
+}

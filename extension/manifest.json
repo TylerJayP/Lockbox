@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "Lockbox",
+  "version": "0.7.0",
+  "description": "Fill and save logins with Lockbox, the offline password manager on your computer.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv1uxz1MhpkgqQyEiCduzlGGltGQdViqlMWDO6ozOgZ8Ur7NgZE8AhXBOA/w52yu+w4Ad9sIM8tYdTlCJ+5N0XHWgf+FH6F0Dis2UCEP3WuEVoTS7N5i3Djs9iQTs5leswTFDTcqSWg/NFjY7kpVMlR9qSTiXtIKdvEhRyiHAh+hYn3p6mU6vjfNFy9DpgMp/SIgjJmq1bd7kDT6axiJWgZ3UaQwjR5zGBi5nhthGodTOI6J8DTZrXe4lXwbtE8dUhycLUBnf4ZilsI2i+R7eEdabChUHDZxRXiypZdDyitsxD5AUR8VJcX/6GHOaP0awbMqp8QqJDOHtQKBG4i3DhwIDAQAB",
+  "icons": {
+    "16": "icons/lockbox-16.png",
+    "32": "icons/lockbox-32.png",
+    "48": "icons/lockbox-48.png",
+    "128": "icons/lockbox-128.png"
+  },
+  "action": {
+    "default_title": "Lockbox",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/lockbox-16.png",
+      "32": "icons/lockbox-32.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["nativeMessaging", "storage", "scripting", "activeTab"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "all_frames": true,
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["frames/menu.html", "frames/save.html", "frames/frames.css", "frames/menu.js", "frames/save.js", "icons/lockbox-32.png"],
+      "matches": ["http://*/*", "https://*/*"]
+    }
+  ],
+  "commands": {
+    "fill-login": {
+      "suggested_key": { "default": "Ctrl+Shift+L", "mac": "Command+Shift+L" },
+      "description": "Fill the login for this site"
+    }
+  },
+  "minimum_chrome_version": "120"
+}

@@ -449,13 +449,28 @@ public partial class VaultViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>For items marked "ask for master password", confirms it (once per time the item is opened).</summary>
-    public async Task<bool> EnsureUnsealedAsync(Entry e)
+    public async Task<bool> EnsureUnsealedAsync(Entry e, string message = "Enter your master password to view or copy this item.")
     {
         if (!e.Reprompt) return true;
         if (Editor is { } ed && ed.EntryId == e.Id && !ed.IsSealed) return true;
-        if (!await VerifyMasterPasswordAsync($"\"{e.Title}\" is protected", "Enter your master password to view or copy this item.")) return false;
+        if (!await VerifyMasterPasswordAsync($"\"{e.Title}\" is protected", message)) return false;
         if (Editor is { } ed2 && ed2.EntryId == e.Id) ed2.Unseal();
         return true;
+    }
+
+    /// <summary>
+    /// Adds or updates a login for the browser extension and saves the vault. Returns null (and changes nothing)
+    /// if that login is open here with unsaved edits, or if saving failed.
+    /// </summary>
+    public async Task<Entry?> SaveFromBrowserAsync(Entry entry, bool isNew)
+    {
+        if (!isNew && Editor is { IsDirty: true } open && open.EntryId == entry.Id) return null;
+        var saved = isNew ? Vault.AddEntry(entry) : Vault.UpdateEntry(entry);
+        if (!await PersistAsync()) return null;
+        if (!isNew && Editor?.EntryId == saved.Id) Editor = new EntryEditorViewModel(this, saved);   // show what changed
+        RefreshHome();
+        Status = isNew ? $"Saved {saved.Title} from your browser." : $"Updated {saved.Title} from your browser.";
+        return saved;
     }
 
     // ───────────── navigation helpers ─────────────
