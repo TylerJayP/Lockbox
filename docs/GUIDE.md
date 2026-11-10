@@ -7,6 +7,12 @@
 3. **Save the key file** somewhere other than the vault, ideally a USB stick. You need it plus your password to unlock.
 4. **Save the emergency sheet, print it**, then delete the file. If you ever lose the key file, choose *"I don't have my key file"* on the unlock screen and type the key from the sheet.
 
+## Home
+
+Unlocking opens on **Home**: how many logins, notes, cards and Wi‑Fi networks you have, whether any need attention, when the vault was last saved and when it'll lock itself. It shows no names, usernames or sites, so it's safe to have on screen. Click a count to filter the list, or pick an item to open it.
+
+Someone walking up? Click the **Home** button (top of the list) to close whatever's open, or press **Ctrl+L** to lock. In the list, usernames are partly hidden (`ty•••@example.com`) so they can't be read at a glance. You can show them in full in *Settings → Privacy on this computer*.
+
 ## Moving from a browser or another password manager
 
 1. **Export your passwords as a CSV file** from the app you're leaving:
@@ -153,6 +159,7 @@ The first time you save after unlocking, Lockbox copies the previous version of 
 - **Auto-lock** after a few minutes of inactivity (default 5). Lockbox also locks when Windows locks or the computer sleeps.
 - **Clear copied passwords** after 20 seconds (adjustable).
 - **Hide from screenshots and screen sharing:** on by default.
+- **Show full usernames in the item list:** off by default, so the list shows `ty•••@example.com`.
 - **Auto-type** with Ctrl+Alt+A: off until you turn it on.
 - **Check for updates** when Lockbox starts: on by default, and the only time Lockbox goes online.
 - **Change master password**, optionally with a brand-new key file.

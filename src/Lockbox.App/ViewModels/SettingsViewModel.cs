@@ -23,6 +23,7 @@ public partial class SettingsViewModel : ObservableObject
         LockOnMinimize = s.LockOnMinimize;
         PasswordHistoryLimit = s.PasswordHistoryLimit;
         _hideFromScreenCapture = owner.Main.Settings.HideFromScreenCapture;
+        _showFullUsernames = owner.Main.Settings.ShowFullUsernames;
         _checkForUpdates = owner.Main.Settings.CheckForUpdates;
         _autoTypeEnabled = owner.Main.Settings.AutoTypeEnabled;
         UpdateAutoTypeStatus();
@@ -63,6 +64,14 @@ public partial class SettingsViewModel : ObservableObject
 
     // ── this computer ──
     [ObservableProperty] private bool _hideFromScreenCapture;
+    [ObservableProperty] private bool _showFullUsernames;
+
+    partial void OnShowFullUsernamesChanged(bool value)
+    {
+        _owner.Main.Settings.ShowFullUsernames = value;
+        _owner.Main.Settings.Save();
+        _owner.RebuildList();
+    }
     [ObservableProperty] private string? _captureStatus;
 
     // ───────────── auto-type ─────────────

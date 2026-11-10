@@ -118,6 +118,7 @@ MainWindow NewWindow(out MainWindowViewModel vm)
     var (v, key) = SampleVault("main");
     var vvm = new VaultViewModel(vm, v, key) { Status = "Saved at 11:58 PM." };
     vm.OnUnlocked(vvm);
+    Shot(w, "03a-home");
     vvm.Selected = vvm.Items.First(i => i.Title == "Steam");
     Shot(w, "03-vault");
     vm.UpdateVersion = "0.5.1";

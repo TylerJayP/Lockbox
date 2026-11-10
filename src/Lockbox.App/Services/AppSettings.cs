@@ -20,6 +20,9 @@ public sealed class AppSettings
     /// <summary>Ask GitHub for a newer version when Lockbox starts. The only time Lockbox goes online.</summary>
     public bool CheckForUpdates { get; set; } = true;
 
+    /// <summary>Show usernames in full in the item list. Off: "ty•••@example.com", so people nearby can't read them.</summary>
+    public bool ShowFullUsernames { get; set; }
+
     /// <summary>Auto-type (Windows): Ctrl+Alt+A types the matching login into the active window. Off until turned on.</summary>
     public bool AutoTypeEnabled { get; set; }
 

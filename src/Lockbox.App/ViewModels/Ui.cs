@@ -57,8 +57,8 @@ public sealed record TypeFilter(ItemType? Type, string Label)
     public override string ToString() => Label;
 }
 
-/// <summary>One row in the sidebar list.</summary>
-public sealed class EntryItemViewModel(Entry e, EntryIssue issues)
+/// <summary>One row in the sidebar list. Usernames are partly hidden unless <paramref name="fullUsernames"/> is set.</summary>
+public sealed class EntryItemViewModel(Entry e, EntryIssue issues, bool fullUsernames = false)
 {
     public Guid Id { get; } = e.Id;
     public ItemType Type { get; } = e.Type;
@@ -68,7 +68,7 @@ public sealed class EntryItemViewModel(Entry e, EntryIssue issues)
         ItemType.Card => CardInfo.Summary(e.Card?.Number ?? ""),
         ItemType.WiFi => e.Wifi?.NetworkName is { Length: > 0 } n ? n : "Wi-Fi network",
         ItemType.SecureNote => "Secure note",
-        _ => e.Username.Length > 0 ? e.Username : e.Url,
+        _ => e.Username.Length == 0 ? e.Url : fullUsernames ? e.Username : PrivacyMask.Username(e.Username),
     };
     public string Initial { get; } = string.IsNullOrWhiteSpace(e.Title) ? "?" : e.Title.Trim()[..1].ToUpperInvariant();
     public bool ShowInitial => Type == ItemType.Login;

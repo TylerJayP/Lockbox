@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Dev builds show this version; the release tool overrides it with -p:Version. -->
-    <Version>0.6.0</Version>
+    <Version>0.6.1</Version>
     <Product>Lockbox</Product>
     <Authors>Tyler Perkins</Authors>
     <Copyright>Copyright (c) 2026 Tyler Perkins</Copyright>

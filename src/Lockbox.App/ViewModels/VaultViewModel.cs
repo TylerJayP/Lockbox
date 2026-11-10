@@ -35,7 +35,7 @@ public partial class VaultViewModel : ObservableObject, IDisposable
 
         RefreshAudit();
         RebuildList();
-        Selected = Items.FirstOrDefault();
+        RefreshHome();   // open on Home: nothing private on screen until you pick an item
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += OnTick;
@@ -73,7 +73,11 @@ public partial class VaultViewModel : ObservableObject, IDisposable
 
     public bool IsEmpty => TotalCount == 0;
     public bool HasAttention => AttentionCount > 0;
-    partial void OnAttentionCountChanged(int value) => OnPropertyChanged(nameof(HasAttention));
+    partial void OnAttentionCountChanged(int value)
+    {
+        OnPropertyChanged(nameof(HasAttention));
+        NotifyHealth();
+    }
     public bool HasNoMatches => TotalCount > 0 && Items.Count == 0;
 
     partial void OnSearchChanged(string value) => RebuildList();
@@ -82,7 +86,19 @@ public partial class VaultViewModel : ObservableObject, IDisposable
 
     /// <summary>Raised by Ctrl+F so the view can focus the search box.</summary>
     public event EventHandler? FocusSearchRequested;
-    partial void OnTotalCountChanged(int value) { OnPropertyChanged(nameof(IsEmpty)); OnPropertyChanged(nameof(HasNoMatches)); }
+    partial void OnTotalCountChanged(int value)
+    {
+        OnPropertyChanged(nameof(IsEmpty));
+        OnPropertyChanged(nameof(HasNoMatches));
+        NotifyHealth();
+    }
+
+    private void NotifyHealth()
+    {
+        OnPropertyChanged(nameof(IsHealthy));
+        OnPropertyChanged(nameof(HealthTitle));
+        OnPropertyChanged(nameof(HealthDetail));
+    }
 
     partial void OnSelectedChanged(EntryItemViewModel? oldValue, EntryItemViewModel? newValue)
     {
@@ -113,7 +129,7 @@ public partial class VaultViewModel : ObservableObject, IDisposable
                         || Has(e.Title) || Has(e.Username) || Has(e.Url)
                         || Has(e.Wifi?.NetworkName) || Has(e.Card?.CardholderName)
                         || e.Tags.Any(Has) || e.Fields.Any(f => Has(f.Name)))
-            .Select(e => new EntryItemViewModel(e, _issues.GetValueOrDefault(e.Id)))
+            .Select(e => new EntryItemViewModel(e, _issues.GetValueOrDefault(e.Id), _main.Settings.ShowFullUsernames))
             .Where(r => !OnlyNeedsAttention || r.NeedsAttention)
             .OrderBy(r => r.Title, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
@@ -225,6 +241,83 @@ public partial class VaultViewModel : ObservableObject, IDisposable
         if (e.Type == ItemType.SecureNote) { Status = "Secure notes have nothing to copy. Open the note instead."; return; }
         if (secret && !await EnsureUnsealedAsync(e)) return;
         await CopySecretAsync(value, what);
+    }
+
+    // ───────────── home ─────────────
+    // The screen you land on after unlocking. It deliberately shows no names, usernames or sites,
+    // so nothing private is on screen until you open an item.
+
+    public bool IsHome => Editor == null;
+    partial void OnEditorChanged(EntryEditorViewModel? value) => OnPropertyChanged(nameof(IsHome));
+
+    [ObservableProperty] private int _loginCount;
+    [ObservableProperty] private int _noteCount;
+    [ObservableProperty] private int _cardCount;
+    [ObservableProperty] private int _wifiCount;
+    [ObservableProperty] private string _lastSavedText = "";
+    [ObservableProperty] private string _backupText = "";
+    [ObservableProperty] private string _autoLockText = "";
+
+    public string Greeting => DateTime.Now.Hour switch
+    {
+        < 5 => "Good evening",
+        < 12 => "Good morning",
+        < 18 => "Good afternoon",
+        _ => "Good evening",
+    };
+
+    public bool IsHealthy => AttentionCount == 0;
+    public string HealthTitle => AttentionCount switch
+    {
+        0 => TotalCount == 0 ? "Nothing to check yet" : "Everything looks good",
+        1 => "1 item needs attention",
+        _ => $"{AttentionCount} items need attention",
+    };
+    public string HealthDetail => AttentionCount == 0
+        ? (TotalCount == 0 ? "Add or import some passwords and Lockbox will keep an eye on them." : "No weak, reused, empty or very old passwords.")
+        : "Weak, reused or very old passwords, or accounts that could use 2FA. The check-up shows which ones.";
+
+    /// <summary>Recounts the Home screen's numbers. Cheap; called after saves and list changes.</summary>
+    public void RefreshHome()
+    {
+        LoginCount = Vault.Entries.Count(e => e.Type == ItemType.Login);
+        NoteCount = Vault.Entries.Count(e => e.Type == ItemType.SecureNote);
+        CardCount = Vault.Entries.Count(e => e.Type == ItemType.Card);
+        WifiCount = Vault.Entries.Count(e => e.Type == ItemType.WiFi);
+        LastSavedText = Vault.LastSavedUtc == default ? "Not saved yet" : $"Saved {Ui.Ago(Vault.LastSavedUtc)}";
+        int backups;
+        try { backups = Vault.ListBackups().Count; } catch (IOException) { backups = 0; } catch (UnauthorizedAccessException) { backups = 0; }
+        BackupText = backups switch
+        {
+            0 => "Automatic backups start with your next save",
+            1 => "1 automatic backup kept next to the vault",
+            _ => $"{backups} automatic backups kept next to the vault",
+        };
+        AutoLockText = $"Locks itself after {Vault.Settings.AutoLockMinutes} min without activity";
+        NotifyHealth();
+        OnPropertyChanged(nameof(Greeting));
+    }
+
+    /// <summary>Close the open item (saving any edits) and show Home, e.g. when someone walks up.</summary>
+    [RelayCommand]
+    private void GoHome()
+    {
+        if (Editor is { IsDirty: true } ed)
+        {
+            ed.ApplyToVault();
+            Dispatcher.UIThread.Post(() => _ = PersistAsync());
+        }
+        Editor = null;
+        Selected = null;
+        RefreshHome();
+    }
+
+    /// <summary>Home tile: show just that kind of item in the list.</summary>
+    [RelayCommand]
+    private void ShowType(string? kind)
+    {
+        var type = Enum.TryParse<ItemType>(kind, out var t) ? t : (ItemType?)null;
+        TypeFilter = TypeFilters.First(f => f.Type == type);
     }
 
     // ───────────── auto-type (Windows) ─────────────
@@ -389,7 +482,11 @@ public partial class VaultViewModel : ObservableObject, IDisposable
     public IReadOnlyDictionary<Guid, EntryIssue> Issues => _issues;
 
     /// <summary>Remember the newest saved revision on this computer (for the rollback warning).</summary>
-    public void RecordSaved() => _main.Settings.RecordRevision(Vault.VaultId, Vault.Revision, Vault.LastSavedUtc);
+    public void RecordSaved()
+    {
+        _main.Settings.RecordRevision(Vault.VaultId, Vault.Revision, Vault.LastSavedUtc);
+        RefreshHome();
+    }
 
     public async Task CopySecretAsync(string value, string what)
     {
@@ -529,6 +626,7 @@ public partial class VaultViewModel : ObservableObject, IDisposable
             return;
         }
         _lastTickUtc = now;
+        if (IsHome && Vault.LastSavedUtc != default) LastSavedText = $"Saved {Ui.Ago(Vault.LastSavedUtc)}";
 
         var limit = TimeSpan.FromMinutes(Vault.Settings.AutoLockMinutes);
         var idle = now - Activity.LastInputUtc;

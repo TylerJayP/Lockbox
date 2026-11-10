@@ -73,6 +73,7 @@ It's for anyone who's been keeping passwords in a text file, a notes app or thei
 
 **Keeps you safe**
 
+- Opens on a Home screen with nothing private on it, and partly hides usernames in the list (ty•••@example.com), so people nearby see nothing useful
 - Locks itself when you step away, lock Windows or put the computer to sleep
 - Copied passwords disappear from the clipboard after 20 seconds and stay out of Windows clipboard history
 - Invisible in screenshots and screen sharing (Discord, OBS, Teams)

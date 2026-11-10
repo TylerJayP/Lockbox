@@ -80,6 +80,13 @@
                     </CheckBox>
                     <TextBlock Classes="dim" FontSize="12" Text="{Binding CaptureStatus}"
                                IsVisible="{Binding CaptureStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <CheckBox IsChecked="{Binding ShowFullUsernames}">
+                        <StackPanel>
+                            <TextBlock Text="Show full usernames in the item list" />
+                            <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap"
+                                       Text="Off: the list shows ty•••@example.com, so people nearby can't read your usernames. Opening an item always shows it in full." />
+                        </StackPanel>
+                    </CheckBox>
                 </StackPanel>
             </Border>
 

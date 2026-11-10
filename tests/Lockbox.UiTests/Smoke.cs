@@ -168,6 +168,25 @@ internal static class Smoke
         vault = vm.ActiveVault!;
         Check(vault.Vault.Entries.Count == 3 && !vault.Vault.IsRecoveryUnlocked, "data intact, backup codes sealed again after unlock");
 
+        // ── Home: unlocking shows nothing private until you pick an item ──
+        Check(vault.IsHome && vault.Editor == null && vault.Selected == null, "unlock opens on Home, with no item open");
+        Check(vault.LoginCount == 3 && vault.HealthTitle.Length > 0 && vault.LastSavedText.StartsWith("Saved"), "Home shows counts and status");
+        vault.Selected = vault.Items.First(i => i.Title == "Steam");
+        Check(!vault.IsHome && vault.Editor!.Username == "tylerjp", "picking an item leaves Home");
+        vault.Editor!.Notes = "edited before stepping away";
+        vault.GoHomeCommand.Execute(null);
+        Wait(() => !vault.Vault.HasUnsavedChanges);
+        Check(vault.IsHome && vault.Selected == null, "Home closes the open item");
+        Check(vault.Vault.Entries.Single(e => e.Title == "Steam").Notes == "edited before stepping away", "unsaved edits are kept when going Home");
+        vault.ShowTypeCommand.Execute("Login");
+        Check(vault.TypeFilter.Type == Lockbox.Core.Model.ItemType.Login && vault.IsHome, "a Home tile filters the list without opening anything");
+        vault.ShowTypeCommand.Execute(null);
+        Check(vault.Items.First(i => i.Title == "Steam").Subtitle == "ty•••jp", "the list partly hides usernames");
+        var privacy = new SettingsViewModel(vault) { ShowFullUsernames = true };
+        Check(vault.Items.First(i => i.Title == "Steam").Subtitle == "tylerjp", "a setting shows them in full");
+        privacy.ShowFullUsernames = false;
+        Check(vault.Items.First(i => i.Title == "Steam").Subtitle == "ty•••jp" && !vm.Settings.ShowFullUsernames, "and hides them again");
+
         // ── Unlock with the typed emergency key instead of the file ──
         Run(vault.LockCommand.ExecuteAsync(null));
         unlock = (UnlockViewModel)vm.CurrentPage!;

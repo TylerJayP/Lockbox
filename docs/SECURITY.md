@@ -25,6 +25,8 @@ file      = header ‖ XChaCha20-Poly1305(vaultKey, nonce, aad = header, payload
 
 ## While unlocked
 
+- Unlocking opens on Home, which shows only counts and status: no names, usernames or sites. The Home button closes the open item again.
+- The item list partly hides usernames (`ty•••@example.com`) unless you choose to show them in full. Opening an item shows it in full.
 - Auto-lock after inactivity, on Windows lock (Win+L), on sleep and optionally on minimize.
 - Copied secrets are cleared from the clipboard after 20 seconds (only if they're still what Lockbox put there), and marked so Windows clipboard history and cloud clipboard skip them.
 - The window is excluded from screenshots, recordings and screen sharing (Windows 10 2004+).
