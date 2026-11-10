@@ -18,20 +18,28 @@ await NativeHostRelay.RunAsync(stdin, stdout, caller,
     launchLockbox: LaunchLockbox,
     // We were started by the browser you're using, so we may let Lockbox come to the front
     // (to ask for approval, the master password, or to unlock).
-    beforeForward: () => { if (OperatingSystem.IsWindows()) AllowSetForegroundWindow(-1); });
+    beforeForward: AllowForeground);
 return 0;
 
 static bool LaunchLockbox()
 {
     string exe = Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "Lockbox.exe" : "Lockbox");
     if (!File.Exists(exe)) return false;
-    if (OperatingSystem.IsWindows()) AllowSetForegroundWindow(-1);
+    AllowForeground();
     try
     {
         Process.Start(new ProcessStartInfo(exe) { UseShellExecute = true, WorkingDirectory = AppContext.BaseDirectory });
         return true;
     }
     catch (System.ComponentModel.Win32Exception) { return false; }
+}
+
+// Best effort: only decides whether Lockbox's window may come forward, so it must never stop the helper.
+static void AllowForeground()
+{
+    if (!OperatingSystem.IsWindows()) return;
+    try { AllowSetForegroundWindow(-1); }
+    catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException) { }
 }
 
 [DllImport("user32.dll")] static extern bool AllowSetForegroundWindow(int processId);

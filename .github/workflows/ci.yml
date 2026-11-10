@@ -19,6 +19,7 @@ jobs:
   build-and-test:
     name: Build and test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30   # a normal run takes a few minutes; never let a stuck one run for hours
     strategy:
       fail-fast: false
       matrix:
@@ -31,7 +32,13 @@ jobs:
       - name: Build
         run: dotnet build Lockbox.slnx -c Release
       - name: Tests (unit + headless end-to-end)
-        run: dotnet test Lockbox.slnx -c Release --no-build
+        run: dotnet test Lockbox.slnx -c Release --no-build --blame-hang-timeout 10m --blame-hang-dump-type none
+        env:
+          LOCKBOX_UITEST_PROGRESS: ${{ runner.temp }}/uitest-progress.txt
+      - name: How far the headless test got
+        if: always()
+        shell: bash
+        run: cat "$RUNNER_TEMP/uitest-progress.txt" 2>/dev/null || echo "(the headless test didn't start)"
       - name: Windows app publishes
         if: runner.os == 'Windows'
         run: dotnet publish src/Lockbox.App -c Release -r win-x64 --self-contained -o publish/ci -p:DebugType=none
@@ -39,6 +46,7 @@ jobs:
   extension:
     name: Browser extension packages
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4

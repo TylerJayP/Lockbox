@@ -15,8 +15,17 @@ internal static class Smoke
 
     private static void Check(bool ok, string what)
     {
-        _log.Add($"{(ok ? "PASS" : "FAIL")}  {what}");
+        string line = $"{(ok ? "PASS" : "FAIL")}  {what}";
+        _log.Add(line);
+        Progress(line);
         if (!ok) _failures++;
+    }
+
+    // CI sets LOCKBOX_UITEST_PROGRESS and prints the file afterwards, so even a run that gets stuck shows how far it got.
+    private static readonly string? ProgressFile = Environment.GetEnvironmentVariable("LOCKBOX_UITEST_PROGRESS");
+    private static void Progress(string line)
+    {
+        if (ProgressFile != null) File.AppendAllText(ProgressFile, $"{DateTime.Now:HH:mm:ss}  {line}{Environment.NewLine}");
     }
 
     private static void Wait(Func<bool> done, int timeoutMs = 30000)
@@ -568,17 +577,39 @@ internal static class Smoke
         string helper = Path.Combine(AppContext.BaseDirectory, "Lockbox.BrowserHost.dll");
         System.Text.Json.Nodes.JsonObject ViaHelper(string caller, string pipe, System.Text.Json.Nodes.JsonObject req)
         {
-            var psi = new System.Diagnostics.ProcessStartInfo("dotnet") { RedirectStandardInput = true, RedirectStandardOutput = true, UseShellExecute = false };
+            Progress($"....  starting the helper ({req["type"]} via {pipe})");
+            // All three streams redirected: a helper must never hold on to the test runner's own output,
+            // or the runner waits for it forever.
+            var psi = new System.Diagnostics.ProcessStartInfo("dotnet")
+            {
+                RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false,
+            };
             psi.ArgumentList.Add(helper);
             psi.ArgumentList.Add(caller);
             psi.Environment["LOCKBOX_BROWSER_PIPE"] = pipe;
             using var p = System.Diagnostics.Process.Start(psi)!;
-            Lockbox.Core.Web.NativeMessage.WriteAsync(p.StandardInput.BaseStream, req.ToJsonString()).Wait();
-            var reply = Lockbox.Core.Web.NativeMessage.ReadAsync(p.StandardOutput.BaseStream);
-            Wait(() => reply.IsCompleted, 20000);
-            p.StandardInput.Close();
-            p.WaitForExit(5000);
-            return (System.Text.Json.Nodes.JsonObject)System.Text.Json.Nodes.JsonNode.Parse(reply.Result!)!;
+            var errors = p.StandardError.ReadToEndAsync();
+            string What() => $"helper exited: {p.HasExited}{(p.HasExited ? $" (code {p.ExitCode})" : "")}; its errors: " +
+                             (errors.Wait(2000) ? errors.Result.Trim() : "(none yet)");
+            try
+            {
+                var sent = Lockbox.Core.Web.NativeMessage.WriteAsync(p.StandardInput.BaseStream, req.ToJsonString());
+                var reply = Lockbox.Core.Web.NativeMessage.ReadAsync(p.StandardOutput.BaseStream);
+                try { Wait(() => sent.IsCompleted && reply.IsCompleted, 20000); }
+                catch (TimeoutException)
+                {
+                    throw new TimeoutException($"No reply from the helper in 20 s (request sent: {sent.IsCompleted}; {What()})");
+                }
+                if (reply.Result is not { } text) throw new InvalidOperationException($"The helper closed without replying ({What()})");
+
+                p.StandardInput.Close();   // the browser hangs up
+                Check(p.WaitForExit(10000), $"browser: the helper exits when the browser hangs up ({req["type"]})");
+                return (System.Text.Json.Nodes.JsonObject)System.Text.Json.Nodes.JsonNode.Parse(text)!;
+            }
+            finally
+            {
+                if (!p.HasExited) p.Kill(entireProcessTree: true);   // never leave one running
+            }
         }
         string pipeName = Environment.GetEnvironmentVariable("LOCKBOX_BROWSER_PIPE")!;
         var viaHelper = ViaHelper(ext, pipeName, new() { ["id"] = "abc", ["type"] = "logins", ["client"] = client, ["url"] = "https://github.com/" });
