@@ -12,7 +12,7 @@
     <PackageVersion Include="Avalonia.Skia" Version="12.1.6" />
     <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.1.6" />
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-    <PackageVersion Include="QRCoder" Version="1.8.1" />
+    <PackageVersion Include="QRCoder" Version="1.9.0" />
   </ItemGroup>
 
   <ItemGroup Label="Security and platform">
